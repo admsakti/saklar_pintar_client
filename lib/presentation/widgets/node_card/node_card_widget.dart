@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class NodeCardWidget extends StatelessWidget {
-  final String roomName;
+  final String deviceName;
   final bool isOnline;
   final String signalStrength;
   final String meshName;
@@ -9,7 +9,7 @@ class NodeCardWidget extends StatelessWidget {
 
   const NodeCardWidget({
     super.key,
-    required this.roomName,
+    required this.deviceName,
     required this.isOnline,
     required this.signalStrength,
     required this.meshName,
@@ -46,7 +46,7 @@ class NodeCardWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    roomName,
+                    deviceName,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

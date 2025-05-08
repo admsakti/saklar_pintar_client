@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:saklar_pintar_client/features/mqtt/bloc/mqtt_bloc.dart';
 
 import 'features/main_bnb/bloc/main_bnb_bloc.dart';
 import 'injections_container.dart';
@@ -22,8 +23,15 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<MainBNBBloc>(
-      create: (context) => sl()..add(TabChange(tabIndex: 0)),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<MainBNBBloc>(
+          create: (context) => sl()..add(TabChange(tabIndex: 0)),
+        ),
+        BlocProvider<MQTTBloc>(
+          create: (context) => sl()..add(ConnectMQTT()),
+        ),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         onGenerateRoute: AppRoutes.onGenerateRoutes,

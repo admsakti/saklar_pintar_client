@@ -45,7 +45,7 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage> {
     _connectivitySubscription = Connectivity()
         .onConnectivityChanged
         .listen((List<ConnectivityResult> result) {
-      print("Stream dijalankan");
+      print("Stream konektifitas WiFi dijalankan");
       if (result.contains(ConnectivityResult.wifi)) {
         print("Stream _getConnectedSSID");
         _getConnectedSSID(); // Perbarui SSID jika terhubung ke WiFi
@@ -102,6 +102,15 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage> {
       final info = NetworkInfo();
       final ssid = await info.getWifiName();
       final bssid = await info.getWifiBSSID();
+
+      // ssid dan bssid masih error, mungkin karena butuh perizinan lokasi karena versi android
+      // [ +235 ms] I/flutter (12595): _getConnectedSSID Dijalankan!
+      // [ +829 ms] I/flutter (12595): Koneksi dengan WiFi!
+      // [ +137 ms] I/flutter (12595): ssid:null
+      // [   +2 ms] I/flutter (12595): bssid:02:00:00:00:00:00
+
+      print("ssid:$ssid");
+      print("bssid:$bssid");
 
       if (ssid != null) {
         print("raw-ssid:$ssid");
@@ -212,7 +221,7 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                            'Mesh-Net Device successfully connected to the ${_ssidController.text.trim()} network'),
+                            'Mesh-Net Device successfully connected to the ${_ssidController.text.trim()} network as Gateway!'),
                       ],
                     ),
                     actions: [
@@ -444,7 +453,10 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage> {
                         : Colors.grey,
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
-                      onTap: _isFormValid ? () => _startProvisioning() : null,
+                      // onTap: _isFormValid ? () => _startProvisioning() : null,
+                      onTap: _isFormValid
+                          ? () => _onDummySaveDataMeshNetwork()
+                          : null,
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         color: Colors.transparent,
@@ -473,6 +485,16 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage> {
         ),
       ),
     );
+  }
+
+  _onDummySaveDataMeshNetwork() async {
+    print("_onDummySaveDataMeshNetwork dijalankan!");
+    context.read<MeshNetworkBloc>().add(
+          InsertMeshNetwork(
+            macRoot: '00:11:00:22:00:33',
+            meshName: _meshNameController.text,
+          ),
+        );
   }
 
   void _onBackButtonTapped(BuildContext context) {

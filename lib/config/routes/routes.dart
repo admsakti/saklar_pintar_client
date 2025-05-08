@@ -31,9 +31,6 @@ class AppRoutes {
               BlocProvider<DeviceBloc>.value(
                 value: sl<DeviceBloc>(),
               ),
-              BlocProvider<MQTTBloc>.value(
-                value: sl<MQTTBloc>(),
-              ),
             ],
             child: const MainBNBPage(),
           ),

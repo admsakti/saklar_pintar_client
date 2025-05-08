@@ -19,11 +19,11 @@ class MQTTError extends MQTTState {
 }
 
 class MQTTConnected extends MQTTState {
-  final List<NodeMessage> messages;
+  final List<DeviceStatuses> messages;
 
   MQTTConnected({this.messages = const []});
 
-  MQTTConnected copyWith({List<NodeMessage>? messages}) {
+  MQTTConnected copyWith({List<DeviceStatuses>? messages}) {
     return MQTTConnected(
       messages: messages ?? this.messages,
     );

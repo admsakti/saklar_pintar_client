@@ -8,7 +8,7 @@ abstract class MQTTEvent extends Equatable {
 class ConnectMQTT extends MQTTEvent {}
 
 class MessageReceived extends MQTTEvent {
-  final NodeMessage message;
+  final DeviceStatuses message;
   MessageReceived(this.message);
 
   @override
@@ -24,11 +24,17 @@ class PublishMessage extends MQTTEvent {
   List<Object?> get props => [topic, message];
 }
 
+// Custom Event untuk Subscribe topik root mesh network
+class SubscribedMeshNetwork extends MQTTEvent {}
+
+// Custom Event untuk menangani pesan masuk dari topik root mesh network
+class DeviceReceivedMessage extends MQTTEvent {}
+
 // Custom Event untuk permintaan data dari device
-class RequestDeviceData extends MQTTEvent {
+class RequestDevicesData extends MQTTEvent {
   final String command; // contoh: 'getNode' atau 'getRSSI'
 
-  RequestDeviceData(this.command);
+  RequestDevicesData(this.command);
 
   @override
   List<Object?> get props => [command];
