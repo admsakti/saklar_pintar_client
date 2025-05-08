@@ -1,0 +1,28 @@
+class NodeMessage {
+  final String nodeId;
+  final String value;
+
+  NodeMessage({required this.nodeId, required this.value});
+
+  factory NodeMessage.fromTopic(String topic, String payload) {
+    final parts = topic.split('/');
+    if (parts.length >= 4) {
+      return NodeMessage(nodeId: parts[3], value: payload);
+    }
+    throw const FormatException('Invalid topic format');
+  }
+
+  @override
+  String toString() => 'NodeMessage(nodeId: $nodeId, value: $value)';
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NodeMessage &&
+          runtimeType == other.runtimeType &&
+          nodeId == other.nodeId &&
+          value == other.value;
+
+  @override
+  int get hashCode => nodeId.hashCode ^ value.hashCode;
+}
