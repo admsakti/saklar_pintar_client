@@ -6,6 +6,7 @@ import 'package:esp_smartconfig/esp_smartconfig.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:network_info_plus/network_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/constants/color_constants.dart';
 import '../../../features/database/bloc/mesh_network/mesh_network_bloc.dart';
@@ -19,7 +20,8 @@ class DeviceProvisioningPage extends StatefulWidget {
   State<DeviceProvisioningPage> createState() => _DeviceProvisioningPageState();
 }
 
-class _DeviceProvisioningPageState extends State<DeviceProvisioningPage> {
+class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
+    with WidgetsBindingObserver {
   late final StreamSubscription<List<ConnectivityResult>>
       _connectivitySubscription;
 
@@ -38,23 +40,10 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage> {
   @override
   void initState() {
     super.initState();
-
-    _getConnectedSSID(); // Dapatkan SSID awal
-
-    // Dengarkan perubahan koneksi
-    _connectivitySubscription = Connectivity()
-        .onConnectivityChanged
-        .listen((List<ConnectivityResult> result) {
-      print("Stream konektifitas WiFi dijalankan");
-      if (result.contains(ConnectivityResult.wifi)) {
-        print("Stream _getConnectedSSID");
-        _getConnectedSSID(); // Perbarui SSID jika terhubung ke WiFi
-      } else {
-        setState(() {
-          _ssidController.text = ''; // Kosongkan jika tidak terhubung
-        });
-      }
-    });
+    WidgetsBinding.instance.addObserver(this);
+    requestLocationPermission(); // Request lokasi untuk mendapatkan ssid dan bssid
+    // _getConnectedSSID(); // Dapatkan SSID awal
+    _listenToConnectivityChanges(); // Stream WiFi
 
     _meshNameController.addListener(_onUserInteraction);
     _ssidController.addListener(_onUserInteraction);
@@ -85,12 +74,37 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connectivitySubscription.cancel();
 
     _meshNameController.dispose();
     _ssidController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.resumed) {
+      // Cek ulang jika kembali dari settings
+      final status = await Permission.locationWhenInUse.status;
+      if (status.isGranted) {
+        print("Izin lokasi diberikan setelah kembali dari settings");
+        _getConnectedSSID();
+      }
+    }
+  }
+
+  Future<void> requestLocationPermission() async {
+    final status = await Permission.locationWhenInUse.request();
+    if (!status.isGranted) {
+      print("Izin lokasi tidak diberikan");
+      await openAppSettings(); // Arahkan ke settings
+      return;
+    }
+
+    print("Izin lokasi diberikan");
+    _getConnectedSSID();
   }
 
   Future<void> _getConnectedSSID() async {
@@ -103,25 +117,33 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage> {
       final ssid = await info.getWifiName();
       final bssid = await info.getWifiBSSID();
 
-      // ssid dan bssid masih error, mungkin karena butuh perizinan lokasi karena versi android
-      // [ +235 ms] I/flutter (12595): _getConnectedSSID Dijalankan!
-      // [ +829 ms] I/flutter (12595): Koneksi dengan WiFi!
-      // [ +137 ms] I/flutter (12595): ssid:null
-      // [   +2 ms] I/flutter (12595): bssid:02:00:00:00:00:00
-
-      print("ssid:$ssid");
+      print("raw-ssid:$ssid");
       print("bssid:$bssid");
 
       if (ssid != null) {
-        print("raw-ssid:$ssid");
         print("cleaned-ssid:${ssid.trim().replaceAll(RegExp(r'^"|"$'), '')}");
-        print("bssid:$bssid");
         setState(() {
           _ssidController.text = ssid;
           _wifiBSSID = bssid;
         });
       }
     }
+  }
+
+  void _listenToConnectivityChanges() {
+    // Dengarkan perubahan koneksi
+    _connectivitySubscription = Connectivity()
+        .onConnectivityChanged
+        .listen((List<ConnectivityResult> result) {
+      if (result.contains(ConnectivityResult.wifi)) {
+        print("Stream konektifitas WiFi dijalankan");
+        _getConnectedSSID(); // Perbarui SSID jika terhubung ke WiFi
+      } else {
+        setState(() {
+          _ssidController.text = ''; // Kosongkan jika tidak terhubung
+        });
+      }
+    });
   }
 
   Future<void> _startProvisioning() async {
@@ -491,7 +513,7 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage> {
     print("_onDummySaveDataMeshNetwork dijalankan!");
     context.read<MeshNetworkBloc>().add(
           InsertMeshNetwork(
-            macRoot: '00:11:00:22:00:33',
+            macRoot: 'painlessMesh',
             meshName: _meshNameController.text,
           ),
         );

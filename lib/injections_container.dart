@@ -24,7 +24,10 @@ Future<void> initializeDependencies() async {
 
   // BLOC MQTT
   sl.registerSingleton(
-    MQTTBloc(mqttClient),
+    MQTTBloc(
+      mqttClient,
+      datatabaseClient,
+    ),
   );
 
   // BLOC Database

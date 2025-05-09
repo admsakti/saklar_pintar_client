@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:saklar_pintar_client/features/mqtt/bloc/mqtt_bloc.dart';
 
-import 'features/main_bnb/bloc/main_bnb_bloc.dart';
-import 'injections_container.dart';
 import 'config/routes/routes.dart';
 import 'core/constants/color_constants.dart';
+import 'features/main_bnb/bloc/main_bnb_bloc.dart';
+import 'features/mqtt/bloc/mqtt_bloc.dart';
+import 'injections_container.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

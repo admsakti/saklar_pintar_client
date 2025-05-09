@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:saklar_pintar_client/features/database/bloc/mesh_network/mesh_network_bloc.dart';
 
 import '../../../core/constants/color_constants.dart';
+import '../../../features/database/bloc/mesh_network/mesh_network_bloc.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});

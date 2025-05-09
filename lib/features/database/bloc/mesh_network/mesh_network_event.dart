@@ -23,13 +23,22 @@ class InsertMeshNetwork extends MeshNetworkEvent {
 
 class GetMeshNetworks extends MeshNetworkEvent {}
 
-class GetMeshNetwork extends MeshNetworkEvent {
+class GetMeshNetworkByMacRoot extends MeshNetworkEvent {
   final String macRoot;
 
-  GetMeshNetwork({required this.macRoot});
+  GetMeshNetworkByMacRoot({required this.macRoot});
 
   @override
   List<Object?> get props => [macRoot];
+}
+
+class GetMeshNetwork extends MeshNetworkEvent {
+  final int id;
+
+  GetMeshNetwork({required this.id});
+
+  @override
+  List<Object?> get props => [id];
 }
 
 class UpdateMeshNetwork extends MeshNetworkEvent {

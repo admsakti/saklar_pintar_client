@@ -58,6 +58,25 @@ class MeshNetworkBloc extends Bloc<MeshNetworkEvent, MeshNetworkState> {
   ) async {
     emit(MeshNetworkLoading());
     try {
+      final meshNetwork = await _database.getMeshNetwork(id: event.id);
+
+      if (meshNetwork == null) {
+        emit(MeshNetworkFailure('Mesh dengan MAC ${event.id} tidak ditemukan'));
+        return;
+      }
+
+      emit(MeshNetworkLoaded(meshNetwork));
+    } catch (e) {
+      emit(MeshNetworkFailure('Failed to load Mesh Network: $e'));
+    }
+  }
+
+  Future<void> onGetMeshNetworkByMacRoot(
+    GetMeshNetworkByMacRoot event,
+    Emitter<MeshNetworkState> emit,
+  ) async {
+    emit(MeshNetworkLoading());
+    try {
       final meshNetwork =
           await _database.getMeshNetworkByMacRoot(macRoot: event.macRoot);
 

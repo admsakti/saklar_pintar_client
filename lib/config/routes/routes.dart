@@ -22,6 +22,7 @@ class AppRoutes {
 
       // Home Section (Home Page and Setting Page)
       case '/MainBNB':
+        final context = settings.arguments as BuildContext;
         return _materialRoute(
           MultiBlocProvider(
             providers: [
@@ -30,6 +31,12 @@ class AppRoutes {
               ),
               BlocProvider<DeviceBloc>.value(
                 value: sl<DeviceBloc>(),
+              ),
+              BlocProvider.value(
+                value: BlocProvider.of<MQTTBloc>(context)
+                  ..add(
+                    ProcessDeviceMessage(), // TRIGGER SEKALI SAJA,
+                  ),
               ),
             ],
             child: const MainBNBPage(),

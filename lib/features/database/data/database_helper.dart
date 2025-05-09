@@ -77,6 +77,22 @@ class DatabaseHelper {
     return result.map((e) => MeshNetwork.fromMap(e)).toList();
   }
 
+  Future<MeshNetwork?> getMeshNetwork({required int id}) async {
+    final db = await database;
+    final result = await db.query(
+      'mesh_networks',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (result.isNotEmpty) {
+      return MeshNetwork.fromMap(result.first);
+    } else {
+      return null;
+    }
+  }
+
   Future<MeshNetwork?> getMeshNetworkByMacRoot(
       {required String macRoot}) async {
     final db = await database;
@@ -164,9 +180,26 @@ class DatabaseHelper {
     final db = await database;
 
     final result = await db.query(
-      'device',
+      'devices',
       where: 'id = ?',
       whereArgs: [id],
+      limit: 1,
+    );
+
+    if (result.isNotEmpty) {
+      return Device.fromMap(result.first);
+    } else {
+      return null;
+    }
+  }
+
+  Future<Device?> getDeviceByDeviceId({required String deviceId}) async {
+    final db = await database;
+
+    final result = await db.query(
+      'devices',
+      where: 'deviceId = ?',
+      whereArgs: [deviceId],
       limit: 1,
     );
 
