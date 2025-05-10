@@ -27,70 +27,61 @@ class InsertDeviceWithMacRoot extends DeviceEvent {
       ];
 }
 
-class InsertDevice extends DeviceEvent {
-  final String deviceId;
-  final String name;
-  final String role;
-  final int meshId;
+// class InsertDevice extends DeviceEvent {
+//   final String deviceId;
+//   final String name;
+//   final String role;
+//   final int meshId;
 
-  InsertDevice({
-    required this.deviceId,
-    required this.name,
-    required this.role,
-    required this.meshId,
-  });
+//   InsertDevice({
+//     required this.deviceId,
+//     required this.name,
+//     required this.role,
+//     required this.meshId,
+//   });
 
-  @override
-  List<Object?> get props => [
-        deviceId,
-        name,
-        role,
-        meshId,
-      ];
-}
+//   @override
+//   List<Object?> get props => [
+//         deviceId,
+//         name,
+//         role,
+//         meshId,
+//       ];
+// }
 
 class GetDevices extends DeviceEvent {}
 
-class GetDevice extends DeviceEvent {
+class GetDeviceById extends DeviceEvent {
   final int id;
 
-  GetDevice({required this.id});
+  GetDeviceById({required this.id});
 
   @override
   List<Object?> get props => [id];
 }
 
-class UpdateDevice extends DeviceEvent {
+class UpdateDeviceName extends DeviceEvent {
   final int id;
-  final String? deviceId;
   final String? name;
-  final String? role;
-  final int? meshId;
 
-  UpdateDevice({
+  UpdateDeviceName({
     required this.id,
-    this.deviceId,
     this.name,
-    this.role,
-    this.meshId,
   });
 
   @override
   List<Object?> get props => [
         id,
-        deviceId,
         name,
-        role,
-        meshId,
       ];
 }
 
 class DeleteDevices extends DeviceEvent {}
 
-class DeleteDevice extends DeviceEvent {
+class DeleteDeviceById extends DeviceEvent {
   final int id;
 
-  DeleteDevice({required this.id});
+  DeleteDeviceById({required this.id});
 
   @override
   List<Object?> get props => [id];

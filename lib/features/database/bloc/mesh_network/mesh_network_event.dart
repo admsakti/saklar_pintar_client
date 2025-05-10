@@ -32,40 +32,37 @@ class GetMeshNetworkByMacRoot extends MeshNetworkEvent {
   List<Object?> get props => [macRoot];
 }
 
-class GetMeshNetwork extends MeshNetworkEvent {
+class GetMeshNetworkById extends MeshNetworkEvent {
   final int id;
 
-  GetMeshNetwork({required this.id});
+  GetMeshNetworkById({required this.id});
 
   @override
   List<Object?> get props => [id];
 }
 
-class UpdateMeshNetwork extends MeshNetworkEvent {
+class UpdateMeshNetworkName extends MeshNetworkEvent {
   final int id;
-  final String? macRoot;
   final String? name;
 
-  UpdateMeshNetwork({
+  UpdateMeshNetworkName({
     required this.id,
-    this.macRoot,
     this.name,
   });
 
   @override
   List<Object?> get props => [
         id,
-        macRoot,
         name,
       ];
 }
 
 class DeleteMeshNetworks extends MeshNetworkEvent {}
 
-class DeleteMeshNetwork extends MeshNetworkEvent {
+class DeleteMeshNetworkById extends MeshNetworkEvent {
   final int id;
 
-  DeleteMeshNetwork({required this.id});
+  DeleteMeshNetworkById({required this.id});
 
   @override
   List<Object?> get props => [id];

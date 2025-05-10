@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/constants/color_constants.dart';
+import '../../../features/database/bloc/device/device_bloc.dart';
 import '../../../features/database/bloc/mesh_network/mesh_network_bloc.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -23,7 +24,6 @@ class SettingsPage extends StatelessWidget {
                 color: ColorConstants.whiteAppColor,
                 borderRadius: BorderRadius.circular(16),
                 child: InkWell(
-                  // onTap: _isFormValid ? () => _startProvisioning() : null,
                   onTap: () => _onDeleteMeshNetworks(context),
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
@@ -51,6 +51,9 @@ class SettingsPage extends StatelessWidget {
   }
 
   _onDeleteMeshNetworks(BuildContext context) async {
+    context.read<DeviceBloc>().add(
+          DeleteDevices(),
+        );
     context.read<MeshNetworkBloc>().add(
           DeleteMeshNetworks(),
         );

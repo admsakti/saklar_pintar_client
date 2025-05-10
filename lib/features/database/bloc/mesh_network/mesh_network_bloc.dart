@@ -13,10 +13,11 @@ class MeshNetworkBloc extends Bloc<MeshNetworkEvent, MeshNetworkState> {
   MeshNetworkBloc(this._database) : super(MeshNetworkInitial()) {
     on<InsertMeshNetwork>(onInsertMeshNetwork);
     on<GetMeshNetworks>(onGetMeshNetworks);
-    on<GetMeshNetwork>(onGetMeshNetwork);
-    on<UpdateMeshNetwork>(onUpdateMeshNetwork);
+    on<GetMeshNetworkById>(onGetMeshNetworkById);
+    on<GetMeshNetworkByMacRoot>(onGetMeshNetworkByMacRoot);
+    on<UpdateMeshNetworkName>(onUpdateMeshNetworkName);
     on<DeleteMeshNetworks>(onDeleteMeshNetworks);
-    on<DeleteMeshNetwork>(onDeleteMeshNetwork);
+    on<DeleteMeshNetworkById>(onDeleteMeshNetworkById);
   }
 
   Future<void> onInsertMeshNetwork(
@@ -52,13 +53,13 @@ class MeshNetworkBloc extends Bloc<MeshNetworkEvent, MeshNetworkState> {
     }
   }
 
-  Future<void> onGetMeshNetwork(
-    GetMeshNetwork event,
+  Future<void> onGetMeshNetworkById(
+    GetMeshNetworkById event,
     Emitter<MeshNetworkState> emit,
   ) async {
     emit(MeshNetworkLoading());
     try {
-      final meshNetwork = await _database.getMeshNetwork(id: event.id);
+      final meshNetwork = await _database.getMeshNetworkById(id: event.id);
 
       if (meshNetwork == null) {
         emit(MeshNetworkFailure('Mesh dengan MAC ${event.id} tidak ditemukan'));
@@ -92,16 +93,15 @@ class MeshNetworkBloc extends Bloc<MeshNetworkEvent, MeshNetworkState> {
     }
   }
 
-  Future<void> onUpdateMeshNetwork(
-    UpdateMeshNetwork event,
+  Future<void> onUpdateMeshNetworkName(
+    UpdateMeshNetworkName event,
     Emitter<MeshNetworkState> emit,
   ) async {
     emit(MeshNetworkLoading());
     try {
-      await _database.updateMeshNetwork(
+      await _database.updateMeshNetworkName(
         id: event.id,
         name: event.name,
-        macRoot: event.macRoot,
       );
       emit(UpdateMeshNetworkSuccess());
     } catch (e) {
@@ -122,13 +122,13 @@ class MeshNetworkBloc extends Bloc<MeshNetworkEvent, MeshNetworkState> {
     }
   }
 
-  Future<void> onDeleteMeshNetwork(
-    DeleteMeshNetwork event,
+  Future<void> onDeleteMeshNetworkById(
+    DeleteMeshNetworkById event,
     Emitter<MeshNetworkState> emit,
   ) async {
     emit(MeshNetworkLoading());
     try {
-      await _database.deleteMeshNetwork(id: event.id);
+      await _database.deleteMeshNetworkById(id: event.id);
       emit(DeleteMeshNetworkSuccess());
     } catch (e) {
       emit(MeshNetworkFailure('Failed to delete Mesh Network: $e'));

@@ -123,7 +123,7 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
       if (ssid != null) {
         print("cleaned-ssid:${ssid.trim().replaceAll(RegExp(r'^"|"$'), '')}");
         setState(() {
-          _ssidController.text = ssid;
+          _ssidController.text = ssid.trim().replaceAll(RegExp(r'^"|"$'), '');
           _wifiBSSID = bssid;
         });
       }

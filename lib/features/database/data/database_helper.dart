@@ -77,7 +77,7 @@ class DatabaseHelper {
     return result.map((e) => MeshNetwork.fromMap(e)).toList();
   }
 
-  Future<MeshNetwork?> getMeshNetwork({required int id}) async {
+  Future<MeshNetwork?> getMeshNetworkById({required int id}) async {
     final db = await database;
     final result = await db.query(
       'mesh_networks',
@@ -110,15 +110,13 @@ class DatabaseHelper {
     }
   }
 
-  Future<int> updateMeshNetwork({
+  Future<int> updateMeshNetworkName({
     required int id,
-    String? macRoot,
     String? name,
   }) async {
     final db = await database;
 
     Map<String, dynamic> values = {};
-    if (macRoot != null) values['macRoot'] = macRoot;
     if (name != null) values['name'] = name;
 
     return await db.update(
@@ -129,7 +127,7 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> deleteMeshNetwork({required int id}) async {
+  Future<int> deleteMeshNetworkById({required int id}) async {
     final db = await database;
     return await db.delete(
       'mesh_networks',
@@ -144,10 +142,10 @@ class DatabaseHelper {
   }
 
   //// DEVICE
-  Future<int> insertDevice({required Device device}) async {
-    final db = await database;
-    return await db.insert('devices', device.toMap());
-  }
+  // Future<int> insertDevice({required Device device}) async { // Sepertinya tidak dipakai
+  //   final db = await database;
+  //   return await db.insert('devices', device.toMap());
+  // }
 
   Future<int?> insertDeviceWithMacRoot({
     required String macRoot,
@@ -172,22 +170,39 @@ class DatabaseHelper {
 
   Future<List<Device>> getDevices() async {
     final db = await database;
-    final List<Map<String, dynamic>> result = await db.query('devices');
-    return result.map((e) => Device.fromMap(e)).toList();
+    // final List<Map<String, dynamic>> result = await db.query('devices');
+    final List<Map<String, dynamic>> result = await db.rawQuery('''
+      SELECT 
+        d.id AS idDevice, d.deviceId AS deviceIdentifier, d.name, d.role,
+        m.id AS idMesh, m.macRoot AS macIdentifier, m.name AS meshName
+      FROM devices d
+      INNER JOIN mesh_networks m ON d.meshId = m.id
+    ''');
+
+    print("DB GetDevices result: $result");
+    return result.map((e) => Device.fromMapWithMeshNetwork(e)).toList();
   }
 
-  Future<Device?> getDevice({required int id}) async {
+  Future<Device?> getDeviceById({required int id}) async {
     final db = await database;
 
-    final result = await db.query(
-      'devices',
-      where: 'id = ?',
-      whereArgs: [id],
-      limit: 1,
-    );
+    final result = await db.rawQuery('''
+      SELECT 
+        d.id AS idDevice, 
+        d.deviceId AS deviceIdentifier, 
+        d.name, 
+        d.role,
+        m.id AS idMesh, 
+        m.macRoot AS macIdentifier, 
+        m.name AS meshName
+      FROM devices d
+      INNER JOIN mesh_networks m ON d.meshId = m.id
+      WHERE d.id = ?
+      LIMIT 1
+    ''', [id]);
 
     if (result.isNotEmpty) {
-      return Device.fromMap(result.first);
+      return Device.fromMapWithMeshNetwork(result.first);
     } else {
       return null;
     }
@@ -196,34 +211,36 @@ class DatabaseHelper {
   Future<Device?> getDeviceByDeviceId({required String deviceId}) async {
     final db = await database;
 
-    final result = await db.query(
-      'devices',
-      where: 'deviceId = ?',
-      whereArgs: [deviceId],
-      limit: 1,
-    );
+    final result = await db.rawQuery('''
+      SELECT 
+        d.id AS idDevice, 
+        d.deviceId AS deviceIdentifier, 
+        d.name, 
+        d.role,
+        m.id AS idMesh, 
+        m.macRoot AS macIdentifier, 
+        m.name AS meshName
+      FROM devices d
+      INNER JOIN mesh_networks m ON d.meshId = m.id
+      WHERE d.deviceId = ?
+      LIMIT 1
+    ''', [deviceId]);
 
     if (result.isNotEmpty) {
-      return Device.fromMap(result.first);
+      return Device.fromMapWithMeshNetwork(result.first);
     } else {
       return null;
     }
   }
 
-  Future<int> updateDevice({
+  Future<int> updateDeviceName({
     required int id,
-    String? deviceId,
     String? name,
-    String? role,
-    int? meshId,
   }) async {
     final db = await database;
 
     Map<String, dynamic> values = {};
-    if (deviceId != null) values['deviceId'] = deviceId;
     if (name != null) values['name'] = name;
-    if (role != null) values['role'] = role;
-    if (meshId != null) values['meshId'] = meshId;
 
     return await db.update(
       'devices',
@@ -233,7 +250,7 @@ class DatabaseHelper {
     );
   }
 
-  Future<int> deleteDevice({required int id}) async {
+  Future<int> deleteDeviceById({required int id}) async {
     final db = await database;
     return await db.delete(
       'devices',

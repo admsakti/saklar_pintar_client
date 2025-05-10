@@ -1,18 +1,20 @@
 import 'package:equatable/equatable.dart';
 
+import 'mesh_network.dart';
+
 class Device extends Equatable {
   final int? id;
   final String deviceId;
   final String name;
   final String role; // root / node
-  final int meshId; // Foreign key ke mesh
+  final MeshNetwork meshNetwork; // Data Model Mesh Network
 
   const Device({
     this.id,
     required this.deviceId,
     required this.name,
     required this.role,
-    required this.meshId,
+    required this.meshNetwork,
   });
 
   @override
@@ -21,26 +23,30 @@ class Device extends Equatable {
         deviceId,
         name,
         role,
-        meshId,
+        meshNetwork,
       ];
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'deviceId': deviceId,
-      'name': name,
-      'role': role,
-      'meshId': meshId,
-    };
-  }
+  // Map<String, dynamic> toMap() {
+  //   return {
+  //     'id': id,
+  //     'deviceId': deviceId,
+  //     'name': name,
+  //     'role': role,
+  //     'meshNetwork': meshNetwork,
+  //   };
+  // }
 
-  factory Device.fromMap(Map<String, dynamic> map) {
+  factory Device.fromMapWithMeshNetwork(Map<String, dynamic> map) {
     return Device(
-      id: map['id'],
-      deviceId: map['deviceId'],
+      id: map['idDevice'],
+      deviceId: map['deviceIdentifier'],
       name: map['name'],
       role: map['role'],
-      meshId: map['meshId'],
+      meshNetwork: MeshNetwork(
+        id: map['idMesh'],
+        macRoot: map['macIdentifier'],
+        name: map['meshName'],
+      ),
     );
   }
 }

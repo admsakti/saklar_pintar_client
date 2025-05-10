@@ -19,16 +19,24 @@ class MQTTError extends MQTTState {
 }
 
 class MQTTConnected extends MQTTState {
-  final List<DeviceStatuses> messages;
+  final List<DeviceStatuses> deviceStatuses;
+  final List<MeshMessage> meshMessages;
 
-  MQTTConnected({this.messages = const []});
+  MQTTConnected({
+    this.deviceStatuses = const [],
+    this.meshMessages = const [],
+  });
 
-  MQTTConnected copyWith({List<DeviceStatuses>? messages}) {
+  MQTTConnected copyWith({
+    List<DeviceStatuses>? deviceStatuses,
+    List<MeshMessage>? meshMessages,
+  }) {
     return MQTTConnected(
-      messages: messages ?? this.messages,
+      deviceStatuses: deviceStatuses ?? this.deviceStatuses,
+      meshMessages: meshMessages ?? this.meshMessages,
     );
   }
 
   @override
-  List<Object?> get props => [messages];
+  List<Object?> get props => [deviceStatuses, meshMessages];
 }

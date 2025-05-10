@@ -14,7 +14,11 @@ class MainBNBPage extends StatelessWidget {
     return BlocBuilder<MainBNBBloc, MainBNBState>(
       builder: (context, state) {
         return Scaffold(
-          body: bottomNavPages.elementAt(state.tabIndex),
+          // body: bottomNavPages.elementAt(state.tabIndex),
+          body: IndexedStack(
+            index: state.tabIndex,
+            children: bottomNavPages,
+          ),
           bottomNavigationBar: ClipRRect(
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(16),

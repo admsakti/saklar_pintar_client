@@ -12,12 +12,12 @@ class DeviceBloc extends Bloc<DeviceEvent, DeviceState> {
 
   DeviceBloc(this._database) : super(DeviceInitial()) {
     on<InsertDeviceWithMacRoot>(onInsertDeviceWithMacRoot);
-    on<InsertDevice>(onInsertDevice); // Sepertinya tidak dipakai
+    // on<InsertDevice>(onInsertDevice); // Sepertinya tidak dipakai
     on<GetDevices>(onGetDevices);
-    on<GetDevice>(onGetDevice);
-    on<UpdateDevice>(onUpdateDevice);
+    on<GetDeviceById>(onGetDeviceById);
+    on<UpdateDeviceName>(onUpdateDeviceName);
     on<DeleteDevices>(onDeleteDevices);
-    on<DeleteDevice>(onDeleteDevice);
+    on<DeleteDeviceById>(onDeleteDeviceById);
   }
 
   Future<void> onInsertDeviceWithMacRoot(
@@ -35,13 +35,11 @@ class DeviceBloc extends Bloc<DeviceEvent, DeviceState> {
         return;
       }
 
-      await _database.insertDevice(
-        device: Device(
-          deviceId: event.deviceId,
-          name: event.name,
-          role: event.role,
-          meshId: meshNetwork.id!,
-        ),
+      await _database.insertDeviceWithMacRoot(
+        macRoot: event.macRoot,
+        deviceId: event.deviceId,
+        name: event.name,
+        role: event.role,
       );
 
       emit(SaveDeviceSuccess());
@@ -50,25 +48,25 @@ class DeviceBloc extends Bloc<DeviceEvent, DeviceState> {
     }
   }
 
-  Future<void> onInsertDevice(
-    InsertDevice event,
-    Emitter<DeviceState> emit,
-  ) async {
-    try {
-      await _database.insertDevice(
-        device: Device(
-          deviceId: event.deviceId,
-          name: event.name,
-          role: event.role,
-          meshId: event.meshId,
-        ),
-      );
-      // add(GetDevices()); // refresh after insert
-      emit(SaveDeviceSuccess());
-    } catch (e) {
-      emit(DeviceFailure('Gagal menyimpan device: $e'));
-    }
-  }
+  // Future<void> onInsertDevice(
+  //   InsertDevice event,
+  //   Emitter<DeviceState> emit,
+  // ) async {
+  //   try {
+  //     await _database.insertDevice(
+  //       device: Device(
+  //         deviceId: event.deviceId,
+  //         name: event.name,
+  //         role: event.role,
+  //         meshId: event.meshId,
+  //       ),
+  //     );
+  //     // add(GetDevices()); // refresh after insert
+  //     emit(SaveDeviceSuccess());
+  //   } catch (e) {
+  //     emit(DeviceFailure('Gagal menyimpan device: $e'));
+  //   }
+  // }
 
   Future<void> onGetDevices(
     GetDevices event,
@@ -83,13 +81,13 @@ class DeviceBloc extends Bloc<DeviceEvent, DeviceState> {
     }
   }
 
-  Future<void> onGetDevice(
-    GetDevice event,
+  Future<void> onGetDeviceById(
+    GetDeviceById event,
     Emitter<DeviceState> emit,
   ) async {
     emit(DeviceLoading());
     try {
-      final device = await _database.getDevice(id: event.id);
+      final device = await _database.getDeviceById(id: event.id);
 
       if (device == null) {
         emit(DeviceFailure('Device dengan id ${event.id} tidak ditemukan'));
@@ -102,18 +100,15 @@ class DeviceBloc extends Bloc<DeviceEvent, DeviceState> {
     }
   }
 
-  Future<void> onUpdateDevice(
-    UpdateDevice event,
+  Future<void> onUpdateDeviceName(
+    UpdateDeviceName event,
     Emitter<DeviceState> emit,
   ) async {
     emit(DeviceLoading());
     try {
-      await _database.updateDevice(
+      await _database.updateDeviceName(
         id: event.id,
         name: event.name,
-        deviceId: event.deviceId,
-        role: event.role,
-        meshId: event.meshId,
       );
       emit(UpdateDeviceSuccess());
     } catch (e) {
@@ -134,13 +129,13 @@ class DeviceBloc extends Bloc<DeviceEvent, DeviceState> {
     }
   }
 
-  Future<void> onDeleteDevice(
-    DeleteDevice event,
+  Future<void> onDeleteDeviceById(
+    DeleteDeviceById event,
     Emitter<DeviceState> emit,
   ) async {
     emit(DeviceLoading());
     try {
-      await _database.deleteDevice(id: event.id);
+      await _database.deleteDeviceById(id: event.id);
       emit(DeleteDeviceSuccess());
     } catch (e) {
       emit(DeviceFailure('Failed to delete Device: $e'));

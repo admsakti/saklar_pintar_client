@@ -8,16 +8,23 @@ abstract class MQTTEvent extends Equatable {
 class ConnectMQTT extends MQTTEvent {}
 
 class MessageReceived extends MQTTEvent {
-  final DeviceStatuses message;
-  MessageReceived(this.message);
+  final DeviceStatuses? deviceStatuses;
+  final MeshMessage? meshMessage;
+
+  MessageReceived({
+    this.deviceStatuses,
+    this.meshMessage,
+  }) : assert(deviceStatuses != null || meshMessage != null,
+            'Either deviceStatuses or meshMessage must be provided.');
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [deviceStatuses, meshMessage];
 }
 
 class PublishMessage extends MQTTEvent {
   final String topic;
   final String message;
+
   PublishMessage(this.topic, this.message);
 
   @override
@@ -27,14 +34,14 @@ class PublishMessage extends MQTTEvent {
 // Custom Event untuk Subscribe topik root mesh network
 class SubscribedMeshNetwork extends MQTTEvent {}
 
-// Custom Event untuk menangani pesan masuk dari topik root mesh network
-class DeviceReceivedMessage extends MQTTEvent {}
+// Custom Event untuk menangani pesan masuk dari topik root mesh network //// TRIGGER SEKALI SAJA
+class ProcessDeviceMessage extends MQTTEvent {}
 
 // Custom Event untuk permintaan data dari device
 class RequestDevicesData extends MQTTEvent {
   final String command; // contoh: 'getNode' atau 'getRSSI'
 
-  RequestDevicesData(this.command);
+  RequestDevicesData({required this.command});
 
   @override
   List<Object?> get props => [command];
@@ -55,7 +62,7 @@ class SetDeviceState extends MQTTEvent {
 class SendBroadcast extends MQTTEvent {
   final String message;
 
-  SendBroadcast(this.message);
+  SendBroadcast({required this.message});
 
   @override
   List<Object?> get props => [message];
