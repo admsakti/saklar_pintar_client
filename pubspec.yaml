@@ -37,6 +37,8 @@ flutter:
     - lib/assets/images/logo_hitam_transparan.png
     - lib/assets/images/logo_biru_putih.png
     - lib/assets/images/logo_putih_biru.png
+    - lib/assets/images/logo_app_biru_putih.png
+    - lib/assets/images/logo_app_putih_biru.png
     - lib/assets/images/no_image.png
 
   fonts:

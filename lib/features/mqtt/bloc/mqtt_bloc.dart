@@ -20,8 +20,8 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     on<ConnectMQTT>(onConnect);
     on<MessageReceived>(onMessageReceived);
     on<PublishMessage>(onPublish);
-    on<SubscribedMeshNetwork>(onSubscribedMeshNetwork);
     on<ProcessDeviceMessage>(onProcessDeviceMessage); // TRIGGER SEKALI SAJA
+    on<SubscribedMeshNetwork>(onSubscribedMeshNetwork);
     on<RequestDevicesData>(onRequestDevicesData);
     on<SendBroadcast>(onSendBroadcast);
     on<SetDeviceState>(onSetDeviceState);
@@ -80,21 +80,6 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     Emitter<MQTTState> emit,
   ) {
     _dataMQTT.publish(event.topic, event.message);
-  }
-
-  void onSubscribedMeshNetwork(
-    SubscribedMeshNetwork event,
-    Emitter<MQTTState> emit,
-  ) {
-    print("MQTT Subcribe mesh network dijalankan");
-
-    if (_dataMQTT.client.connectionStatus!.state ==
-        MqttConnectionState.connected) {
-      _dataMQTT.subscribe('painlessMesh/gateway/nodes/#');
-      _dataMQTT.subscribe('painlessMesh/gateway/msg');
-    } else {
-      print("❌ MQTT not connected yet. Can't subscribe.");
-    }
   }
 
   // TRIGGER SEKALI SAJA
@@ -188,11 +173,31 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     });
   }
 
+// Urus logic ini agar tidak hardcode
+
+  void onSubscribedMeshNetwork(
+    SubscribedMeshNetwork event,
+    Emitter<MQTTState> emit,
+  ) {
+    print("MQTT Subcribe mesh network dijalankan");
+
+    if (_dataMQTT.client.connectionStatus!.state ==
+        MqttConnectionState.connected) {
+      _dataMQTT.subscribe('${event.macRoot}/gateway/nodes/#');
+      _dataMQTT.subscribe('${event.macRoot}/gateway/msg');
+    } else {
+      print("❌ MQTT not connected yet. Can't subscribe.");
+    }
+  }
+
   void onRequestDevicesData(
     RequestDevicesData event,
     Emitter<MQTTState> emit,
   ) {
-    _dataMQTT.publish('painlessMesh/gateway/controls/request', event.command);
+    _dataMQTT.publish(
+      '${event.macRoot}/gateway/controls/request',
+      event.command,
+    );
   }
 
   void onSetDeviceState(
@@ -200,7 +205,7 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     Emitter<MQTTState> emit,
   ) {
     _dataMQTT.publish(
-      'painlessMesh/gateway/controls/${event.deviceId}/set',
+      '${event.macRoot}/gateway/controls/${event.deviceId}/set',
       event.value,
     );
   }
@@ -209,6 +214,9 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     SendBroadcast event,
     Emitter<MQTTState> emit,
   ) {
-    _dataMQTT.publish('painlessMesh/gateway/controls/broadcast', event.message);
+    _dataMQTT.publish(
+      '${event.macRoot}/gateway/controls/broadcast',
+      event.message,
+    );
   }
 }

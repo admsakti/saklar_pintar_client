@@ -9,7 +9,9 @@ import 'package:network_info_plus/network_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/constants/color_constants.dart';
+import '../../../features/database/bloc/device/device_bloc.dart';
 import '../../../features/database/bloc/mesh_network/mesh_network_bloc.dart';
+import '../../../features/mqtt/bloc/mqtt_bloc.dart';
 
 class DeviceProvisioningPage extends StatefulWidget {
   const DeviceProvisioningPage({
@@ -36,13 +38,13 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
   bool _hasUserInteracted = false;
 
   String? _wifiBSSID = '00:00:00:00:00:00';
+  String? responseBSSID;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     requestLocationPermission(); // Request lokasi untuk mendapatkan ssid dan bssid
-    // _getConnectedSSID(); // Dapatkan SSID awal
     _listenToConnectivityChanges(); // Stream WiFi
 
     _meshNameController.addListener(_onUserInteraction);
@@ -198,6 +200,9 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
   }
 
   _onSaveDataMeshNetwork(ProvisioningResponse response) async {
+    setState(() {
+      responseBSSID = response.bssidText;
+    });
     context.read<MeshNetworkBloc>().add(
           InsertMeshNetwork(
             macRoot: response.bssidText,
@@ -226,7 +231,6 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
       ),
       body: BlocListener<MeshNetworkBloc, MeshNetworkState>(
         listener: (context, state) {
-          // print(state);
           if (state is MeshNetworkLoading) {
             const Center(child: CircularProgressIndicator());
           } else if (state is SaveMeshNetworkSuccess) {
@@ -249,10 +253,14 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
                     actions: [
                       TextButton(
                         onPressed: () {
-                          // MQTT Subcribe Topic seharusnya
+                          print("Provisioning Done! macRoot : $responseBSSID");
+                          context.read<MQTTBloc>().add(
+                                SubscribedMeshNetwork(macRoot: responseBSSID!),
+                              );
                           context.read<MeshNetworkBloc>().add(
                                 GetMeshNetworks(),
                               );
+                          context.read<DeviceBloc>().add(GetDevices());
                           Navigator.pop(context);
                           Navigator.pop(context);
                           _meshNameController.clear();
@@ -294,6 +302,10 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
                     actions: [
                       TextButton(
                         onPressed: () {
+                          context.read<MeshNetworkBloc>().add(
+                                GetMeshNetworks(),
+                              );
+                          context.read<DeviceBloc>().add(GetDevices());
                           Navigator.pop(context);
                           Navigator.pop(context);
                           _meshNameController.clear();
@@ -340,7 +352,7 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
                       children: const [
                         TextSpan(text: 'Connect your '),
                         TextSpan(
-                          text: 'Mesh-Net Devices\n',
+                          text: 'Mesh-Net Device\n',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -511,6 +523,9 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
 
   _onDummySaveDataMeshNetwork() async {
     print("_onDummySaveDataMeshNetwork dijalankan!");
+    setState(() {
+      responseBSSID = 'painlessMesh';
+    });
     context.read<MeshNetworkBloc>().add(
           InsertMeshNetwork(
             macRoot: 'painlessMesh',

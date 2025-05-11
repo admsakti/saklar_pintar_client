@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/constants/color_constants.dart';
 import '../../../features/database/bloc/device/device_bloc.dart';
 import '../../../features/database/bloc/mesh_network/mesh_network_bloc.dart';
+import '../../../features/database/models/mesh_network.dart';
 import '../../../features/mqtt/bloc/mqtt_bloc.dart';
 import '../../widgets/device_toggle/device_toggle_widget.dart';
 
@@ -18,25 +19,55 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  @override
-  void initState() {
-    super.initState();
-    context.read<MeshNetworkBloc>().add(GetMeshNetworks());
-    context.read<DeviceBloc>().add(GetDevices());
-  }
+  final GlobalKey<CustomRefreshIndicatorState> _refreshKey =
+      GlobalKey<CustomRefreshIndicatorState>();
+  List<MeshNetwork>? cachedMeshNetworksForSubscribe;
+  List<MeshNetwork>? cachedMeshNetworksForRequest;
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<MQTTBloc, MQTTState>(
-      // BlocListener seharusnya bukan di sini!!!
-      listenWhen: (previous, current) =>
-          current is MQTTConnected && previous is! MQTTConnected,
-      listener: (context, state) {
-        if (state is MQTTConnected) {
-          context.read<MQTTBloc>().add(SubscribedMeshNetwork());
-          // context.read<DeviceBloc>().add(GetDevices());
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<MeshNetworkBloc, MeshNetworkState>(
+          // listenWhen: (previous, current) =>
+          //     current is MeshNetworksLoaded && previous is! MeshNetworksLoaded,
+          listener: (context, state) {
+            print("Home Listener GetMeshNetworks Dijalankan");
+
+            if (state is MeshNetworksLoaded) {
+              print("Home MeshNetworksLoaded: ${state.meshNetworks}");
+
+              setState(() {
+                cachedMeshNetworksForSubscribe = state.meshNetworks;
+                cachedMeshNetworksForRequest = state.meshNetworks;
+              });
+            }
+          },
+        ),
+        BlocListener<MQTTBloc, MQTTState>(
+          // listenWhen: (previous, current) =>
+          //     current is MQTTConnected && previous is! MQTTConnected,
+          listener: (context, state) {
+            print("Home Listener MQTTConnected Dijalankan");
+
+            if (state is MQTTConnected &&
+                cachedMeshNetworksForSubscribe != null) {
+              for (var mesh in cachedMeshNetworksForSubscribe!) {
+                print(
+                    "Home SubscribedMeshNetwork: ${mesh.id} / ${mesh.macRoot}");
+
+                context
+                    .read<MQTTBloc>()
+                    .add(SubscribedMeshNetwork(macRoot: mesh.macRoot));
+              }
+              // Kosongkan cache agar tidak kirim ulang
+              setState(() {
+                cachedMeshNetworksForSubscribe = null;
+              });
+            }
+          },
+        ),
+      ],
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: ColorConstants.lightBlueAppColor,
@@ -49,19 +80,43 @@ class _HomePageState extends State<HomePage> {
             },
           ),
           actions: [
+            // Refresh manual dengan tombol
             IconButton(
-              onPressed: () => _onDeviceProvisioningTapped(context),
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: () {
+                _refreshKey.currentState?.refresh(
+                  draggingCurve: Curves.easeOutBack,
+                );
+              },
+              tooltip: "Refresh Devices",
+            ),
+            IconButton(
               icon: const Icon(Icons.add_circle_outline_rounded),
+              onPressed: () => _onDeviceProvisioningTapped(context),
               tooltip: "Add Device",
             ),
           ],
         ),
         body: CustomRefreshIndicator(
+          key: _refreshKey,
           onRefresh: () async {
-            context.read<MQTTBloc>().add(
-                  RequestDevicesData(command: 'getNodes'),
-                );
-            // context.read<DeviceBloc>().add(GetDevices());
+            print("Home Refresh Dijalankan");
+            if (cachedMeshNetworksForRequest != null) {
+              for (var mesh in cachedMeshNetworksForRequest!) {
+                print("Home RequestDevicesData: ${mesh.id} / ${mesh.macRoot}");
+
+                context.read<MQTTBloc>().add(
+                      RequestDevicesData(
+                        macRoot: mesh.macRoot,
+                        command: 'getNodes',
+                      ),
+                    );
+              }
+            }
+
+            context.read<MeshNetworkBloc>().add(GetMeshNetworks());
+            context.read<DeviceBloc>().add(GetDevices());
+
             await Future.delayed(
               const Duration(seconds: 2),
             );
@@ -77,11 +132,15 @@ class _HomePageState extends State<HomePage> {
                     if (controller.isLoading)
                       Padding(
                         padding: const EdgeInsets.all(16),
-                        child: CircularProgressIndicator(
-                          color: Colors.redAccent,
-                          value: controller.state.isLoading
-                              ? null
-                              : math.min(controller.value, 1.0),
+                        child: SizedBox(
+                          height: 30,
+                          width: 30,
+                          child: CircularProgressIndicator(
+                            color: Colors.blueAccent,
+                            value: controller.state.isLoading
+                                ? null
+                                : math.min(controller.value, 1.0),
+                          ),
                         ),
                       ),
                     Padding(
@@ -99,9 +158,55 @@ class _HomePageState extends State<HomePage> {
                 return const Center(child: CircularProgressIndicator());
               } else if (state is DevicesLoaded) {
                 final devices = state.devices;
-                // filter Device lagi karena device yang sama malah bisa buat widget (1 device 1 widget aja, jika sama update sebelumnya)
 
-                print("Devices for MQTT: $devices");
+                print("Home Devices for MQTT: $devices");
+
+                if (devices.isEmpty) {
+                  return SingleChildScrollView(
+                    // agar bisa pull-down meski tidak ada konten
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.75,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'No Device Available',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox.fromSize(size: const Size.fromHeight(20)),
+                          Material(
+                            color: ColorConstants.whiteAppColor,
+                            borderRadius: BorderRadius.circular(16),
+                            child: InkWell(
+                              onTap: () => _onDeviceProvisioningTapped(context),
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                color: Colors.transparent,
+                                width: 240,
+                                height: 48,
+                                child: Center(
+                                  child: Text(
+                                    "Add Mesh-Net Device",
+                                    style: TextStyle(
+                                      color: ColorConstants.darkBlueAppColor,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
 
                 return ListView.builder(
                   itemCount: devices.length,
@@ -113,10 +218,68 @@ class _HomePageState extends State<HomePage> {
                   },
                 );
               } else if (state is DeviceFailure) {
-                return Center(child: Text('Error: ${state.message}'));
+                return SingleChildScrollView(
+                  // agar bisa pull-down meski tidak ada konten
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.6,
+                    child: Center(
+                      child: Text(
+                        'Error loading devices. Error: ${state.message}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
               }
-              // jika tidak tersambung ke MQTT atau tidak memiliki data device di sqflite
-              return const Center(child: Text('No Device Available'));
+
+              return SingleChildScrollView(
+                // agar bisa pull-down meski tidak ada konten
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.75,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'No Device Available',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox.fromSize(size: const Size.fromHeight(20)),
+                      Material(
+                        color: ColorConstants.whiteAppColor,
+                        borderRadius: BorderRadius.circular(16),
+                        child: InkWell(
+                          onTap: () => _onDeviceProvisioningTapped(context),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            color: Colors.transparent,
+                            width: 240,
+                            height: 48,
+                            child: Center(
+                              child: Text(
+                                "Add Mesh-Net Device",
+                                style: TextStyle(
+                                  color: ColorConstants.darkBlueAppColor,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
             },
           ),
         ),

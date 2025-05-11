@@ -32,38 +32,49 @@ class PublishMessage extends MQTTEvent {
 }
 
 // Custom Event untuk Subscribe topik root mesh network
-class SubscribedMeshNetwork extends MQTTEvent {}
+class SubscribedMeshNetwork extends MQTTEvent {
+  final String macRoot;
+
+  SubscribedMeshNetwork({required this.macRoot});
+
+  @override
+  List<Object?> get props => [macRoot];
+}
 
 // Custom Event untuk menangani pesan masuk dari topik root mesh network //// TRIGGER SEKALI SAJA
 class ProcessDeviceMessage extends MQTTEvent {}
 
 // Custom Event untuk permintaan data dari device
 class RequestDevicesData extends MQTTEvent {
+  final String macRoot;
   final String command; // contoh: 'getNode' atau 'getRSSI'
 
-  RequestDevicesData({required this.command});
+  RequestDevicesData({required this.macRoot, required this.command});
 
   @override
-  List<Object?> get props => [command];
+  List<Object?> get props => [macRoot, command];
 }
 
 // Custom Event untuk mengubah status device (ON/OFF)
 class SetDeviceState extends MQTTEvent {
+  final String macRoot;
   final String deviceId;
   final String value; // 'ON' atau 'OFF'
 
-  SetDeviceState({required this.deviceId, required this.value});
+  SetDeviceState(
+      {required this.macRoot, required this.deviceId, required this.value});
 
   @override
-  List<Object?> get props => [deviceId, value];
+  List<Object?> get props => [macRoot, deviceId, value];
 }
 
 // Custom Event untuk kirim pesan teks ke semua device
 class SendBroadcast extends MQTTEvent {
+  final String macRoot;
   final String message;
 
-  SendBroadcast({required this.message});
+  SendBroadcast({required this.macRoot, required this.message});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [macRoot, message];
 }

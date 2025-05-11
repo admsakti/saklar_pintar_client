@@ -29,6 +29,7 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
   @override
   void initState() {
     super.initState();
+    // sepertinya aman, karena pas refresh data akan diminta ulang dari root!!
     _currentOnline = false;
     _currentStatus = false;
     _currentRSSI = 'N/A';
@@ -39,6 +40,7 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
 
     context.read<MQTTBloc>().add(
           SetDeviceState(
+            macRoot: widget.device.meshNetwork.macRoot,
             deviceId: widget.device.deviceId,
             value: newCommand,
           ),

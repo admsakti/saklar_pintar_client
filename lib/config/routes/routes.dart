@@ -27,10 +27,16 @@ class AppRoutes {
           MultiBlocProvider(
             providers: [
               BlocProvider<MeshNetworkBloc>.value(
-                value: sl<MeshNetworkBloc>(),
+                value: sl<MeshNetworkBloc>()
+                  ..add(
+                    GetMeshNetworks(),
+                  ),
               ),
               BlocProvider<DeviceBloc>.value(
-                value: sl<DeviceBloc>(),
+                value: sl<DeviceBloc>()
+                  ..add(
+                    GetDevices(),
+                  ),
               ),
               BlocProvider.value(
                 value: BlocProvider.of<MQTTBloc>(context)
@@ -54,6 +60,9 @@ class AppRoutes {
               ),
               BlocProvider.value(
                 value: BlocProvider.of<MQTTBloc>(context),
+              ),
+              BlocProvider.value(
+                value: BlocProvider.of<DeviceBloc>(context),
               ),
             ],
             child: const DeviceProvisioningPage(),
