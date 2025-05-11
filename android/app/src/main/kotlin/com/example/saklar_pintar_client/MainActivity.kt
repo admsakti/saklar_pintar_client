@@ -1,4 +1,4 @@
-package com.example.saklar_pintar_client
+package com.saklar_pintar.mesh_net
 
 import io.flutter.embedding.android.FlutterActivity
 

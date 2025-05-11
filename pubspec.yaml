@@ -1,19 +1,58 @@
 name: saklar_pintar_client
-description: "A new Flutter project."
-publish_to: 'none'
-version: 0.1.0
+description: "Aplikasi client menggunakan Flutter untuk perangkat saklar pintar
+  berbasis Mesh Network"
+publish_to: "none"
+version: 0.0.1
 
 environment:
-  sdk: '>=3.4.3 <4.0.0'
+  sdk: ">=3.4.3 <4.0.0"
 
 dependencies:
+  app_settings: ^6.1.1
+  bottom_picker: ^3.1.0
+  connectivity_plus: ^6.1.4
+  custom_refresh_indicator: ^4.0.1
+  equatable: ^2.0.5
+  esp_smartconfig: ^2.0.4
   flutter:
     sdk: flutter
+  flutter_bloc: ^8.1.6
+  get_it: ^8.0.1
+  mqtt_client: ^10.3.0
+  network_info_plus: ^6.1.4
+  path: ^1.9.0
+  permission_handler: ^11.3.1
+  rename: ^3.1.0
+  sqflite: ^2.3.3+1
 
 dev_dependencies:
+  flutter_launcher_icons: "^0.14.3"
+  flutter_lints: ^4.0.0
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+
+flutter_launcher_icons:
+  android: true
+  image_path: "lib/assets/images/logo_app_putih_biru.png"
+  adaptive_icon_background: "#5CE1E6"
+  adaptive_icon_foreground: "lib/assets/images/logo_app_putih_biru.png"
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - lib/assets/images/logo_biru_transparan.png
+    - lib/assets/images/logo_putih_transparan.png
+    - lib/assets/images/logo_hitam_transparan.png
+    - lib/assets/images/logo_biru_putih.png
+    - lib/assets/images/logo_putih_biru.png
+    - lib/assets/images/logo_app_biru_putih.png
+    - lib/assets/images/logo_app_putih_biru.png
+    - lib/assets/images/no_image.png
+
+  fonts:
+    - family: Lexend
+      fonts:
+        - asset: lib/assets/fonts/Lexend-Regular.ttf
+        - asset: lib/assets/fonts/Lexend-SemiBold.ttf
+          weight: 600
