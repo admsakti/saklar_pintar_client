@@ -20,7 +20,6 @@ class _SplashScreenState extends State<SplashScreen> {
     Timer(
       const Duration(seconds: 2),
       () {
-        // print("Ke MainBNBPage aka HomePage");
         Navigator.pushNamedAndRemoveUntil(
           context,
           "/MainBNB",
@@ -31,10 +30,14 @@ class _SplashScreenState extends State<SplashScreen> {
     );
     return Scaffold(
       body: Center(
-        child: Image.asset(
-          'lib/assets/images/logo_putih_transparan.png',
-          height: MediaQuery.of(context).size.width / 1.5,
-          width: MediaQuery.of(context).size.width / 1.5,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Image.asset(
+            'lib/assets/images/logo_biru_putih.png',
+            height: MediaQuery.of(context).size.width / 1.5,
+            width: MediaQuery.of(context).size.width / 1.5,
+            fit: BoxFit.cover,
+          ),
         ),
       ),
     );

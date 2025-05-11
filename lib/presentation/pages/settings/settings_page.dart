@@ -20,6 +20,8 @@ class SettingsPage extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              SizedBox.fromSize(size: const Size.fromHeight(25)),
+              //// Handle State Bloc Device dan Mesh Network
               Material(
                 color: ColorConstants.whiteAppColor,
                 borderRadius: BorderRadius.circular(16),
@@ -32,7 +34,7 @@ class SettingsPage extends StatelessWidget {
                     height: 64,
                     child: Center(
                       child: Text(
-                        "Delete Mesh Networks",
+                        "Delete All Devices",
                         style: TextStyle(
                           color: ColorConstants.darkBlueAppColor,
                           fontSize: 18,
@@ -41,6 +43,82 @@ class SettingsPage extends StatelessWidget {
                       ),
                     ),
                   ),
+                ),
+              ),
+              SizedBox.fromSize(size: const Size.fromHeight(25)),
+              Material(
+                color: ColorConstants.whiteAppColor,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  onTap: () {},
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    color: Colors.transparent,
+                    width: MediaQuery.of(context).size.width,
+                    height: 64,
+                    child: Center(
+                      child: Text(
+                        "View All Devices",
+                        style: TextStyle(
+                          color: ColorConstants.darkBlueAppColor,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(top: 200, bottom: 15),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 95,
+                      child: Text(
+                        "Version",
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 5, child: Text(":")),
+                    SizedBox(
+                      width: 200,
+                      child: Text(
+                        "0.0.1",
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 15),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 95,
+                      child: Text(
+                        "Developer",
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 5, child: Text(":")),
+                    SizedBox(
+                      width: 200,
+                      child: Text(
+                        "Sakti Bayu Nugraha",
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

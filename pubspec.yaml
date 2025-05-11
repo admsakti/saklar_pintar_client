@@ -9,6 +9,7 @@ environment:
 
 dependencies:
   app_settings: ^6.1.1
+  bottom_picker: ^3.1.0
   connectivity_plus: ^6.1.4
   custom_refresh_indicator: ^4.0.1
   equatable: ^2.0.5
@@ -21,12 +22,20 @@ dependencies:
   network_info_plus: ^6.1.4
   path: ^1.9.0
   permission_handler: ^11.3.1
+  rename: ^3.1.0
   sqflite: ^2.3.3+1
 
 dev_dependencies:
+  flutter_launcher_icons: "^0.14.3"
   flutter_lints: ^4.0.0
   flutter_test:
     sdk: flutter
+
+flutter_launcher_icons:
+  android: true
+  image_path: "lib/assets/images/logo_app_putih_biru.png"
+  adaptive_icon_background: "#5CE1E6"
+  adaptive_icon_foreground: "lib/assets/images/logo_app_putih_biru.png"
 
 flutter:
   uses-material-design: true

@@ -114,12 +114,9 @@ class _HomePageState extends State<HomePage> {
               }
             }
 
-            context.read<MeshNetworkBloc>().add(GetMeshNetworks());
             context.read<DeviceBloc>().add(GetDevices());
 
-            await Future.delayed(
-              const Duration(seconds: 2),
-            );
+            await Future.delayed(const Duration(seconds: 2));
           },
           builder: (BuildContext context, Widget child,
               IndicatorController controller) {

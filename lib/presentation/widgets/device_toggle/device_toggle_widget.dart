@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../config/arguments/device_arguments.dart';
 import '../../../core/constants/color_constants.dart';
 import '../../../features/database/models/device.dart';
 import '../../../features/mqtt/bloc/mqtt_bloc.dart';
@@ -30,6 +31,7 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
   void initState() {
     super.initState();
     // sepertinya aman, karena pas refresh data akan diminta ulang dari root!!
+    print("initState DeviceToggleWidget dipanggil");
     _currentOnline = false;
     _currentStatus = false;
     _currentRSSI = 'N/A';
@@ -96,6 +98,7 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
           onTap: () => setState(() => _isExpanded = !_isExpanded),
+          onLongPress: () => _onDeviceDashboardLongPressed(context),
           borderRadius: BorderRadius.circular(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,13 +107,13 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 title: GestureDetector(
-                  onLongPress: () {
-                    print('mantap');
-                  },
+                  onLongPress: () => _onDeviceDashboardLongPressed(context),
                   child: Text(
                     widget.device.name,
                     style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 leading: GestureDetector(
@@ -158,7 +161,8 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
                       Text('Status: ${_currentOnline ? "Online" : "Offline"}'),
                       Text('Signal strength: $_currentRSSI'),
                       Text(
-                          'Mesh name: ${widget.device.meshNetwork.name} - (${widget.device.role})'),
+                        'Mesh name: ${widget.device.meshNetwork.name} - (${widget.device.role})',
+                      ),
                     ],
                   ),
                 )
@@ -167,6 +171,20 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _onDeviceDashboardLongPressed(BuildContext context) {
+    Navigator.pushNamed(
+      context,
+      '/DeviceDashboard',
+      arguments: DeviceArguments(
+        context,
+        widget.device,
+        _currentStatus,
+        _currentOnline,
+        _currentRSSI,
       ),
     );
   }

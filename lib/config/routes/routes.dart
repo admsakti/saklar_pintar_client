@@ -3,12 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 // Dependency Injection
 import '../../../injections_container.dart';
-// Model
+// Arguments
+import '../arguments/device_arguments.dart';
 // BLOC
 import '../../features/database/bloc/device/device_bloc.dart';
 import '../../features/database/bloc/mesh_network/mesh_network_bloc.dart';
 import '../../features/mqtt/bloc/mqtt_bloc.dart';
 // Pages
+import '../../presentation/pages/device_dashboard/device_dashboard.dart';
 import '../../presentation/pages/device_provisioning/device_provisioning_page.dart';
 import '../../presentation/pages/main_bnb/main_bnb_page.dart';
 import '../../presentation/pages/splash/splash_screen.dart';
@@ -69,77 +71,30 @@ class AppRoutes {
           ),
         );
 
-      //Details
-
-      // // IoT Management (Product, Device, Task Management) (ADMIN & USER)
-      // case '/IoTManagement':
-      //   final context = settings.arguments as BuildContext;
-      //   return _materialRoute(
-      //     MultiBlocProvider(
-      //       providers: [
-      //         BlocProvider.value(
-      //           value: BlocProvider.of<DeviceBloc>(context),
-      //         ),
-      //         BlocProvider.value(
-      //           value: BlocProvider.of<MqttWidgetsBloc>(context),
-      //         ),
-      //       ],
-      //       child: const IotManagementPage(),
-      //     ),
-      //   );
-
-      // // Device Section
-      // // Dashboard
-      // case '/DeviceDashboard':
-      //   final args = settings.arguments as DeviceArguments;
-      //   return _materialRoute(
-      //     MultiBlocProvider(
-      //       providers: [
-      //         BlocProvider.value(
-      //           value: BlocProvider.of<MqttWidgetsBloc>(args.context),
-      //         ),
-      //       ],
-      //       child: DeviceDashboardPage(device: args.device),
-      //     ),
-      //   );
-
-      // case '/MonitoringSensor':
-      //   final args = settings.arguments as MonitoringSensorArguments;
-      //   return _materialRoute(
-      //     BlocProvider.value(
-      //       value: BlocProvider.of<MqttWidgetsBloc>(args.context),
-      //       child: MonitoringSensorPage(device: args.device),
-      //     ),
-      //   );
-
-      // case '/ActuatorControlPanel':
-      //   final args = settings.arguments as ActuatorControlPanelArguments;
-      //   return _materialRoute(
-      //     BlocProvider.value(
-      //       value: BlocProvider.of<MqttWidgetsBloc>(args.context),
-      //       child: ActuatorControlPanelPage(device: args.device),
-      //     ),
-      //   );
-
-      // // Provisioning
-      // case '/AddNewTemplateDevices':
-      //   return _materialRoute(
-      //     MultiBlocProvider(
-      //       providers: [
-      //         BlocProvider.value(
-      //           value: BlocProvider.of<ProductBloc>(
-      //             settings.arguments as BuildContext,
-      //           ),
-      //         ),
-      //         BlocProvider.value(
-      //           value: BlocProvider.of<DeviceBloc>(
-      //             settings.arguments as BuildContext,
-      //           ),
-      //         ),
-      //       ],
-      //       child: const AddNewTemplateDevicesPage(),
-      //     ),
-      //   );
+      //Dashboard Details
+      case '/DeviceDashboard':
+        final args = settings.arguments as DeviceArguments;
+        return _materialRoute(
+          MultiBlocProvider(
+            providers: [
+              BlocProvider.value(
+                value: BlocProvider.of<MeshNetworkBloc>(args.context),
+              ),
+              BlocProvider.value(
+                value: BlocProvider.of<MQTTBloc>(args.context),
+              ),
+              BlocProvider.value(
+                value: BlocProvider.of<DeviceBloc>(args.context),
+              ),
+            ],
+            child: DeviceDashboardPage(
+              device: args.device,
+              currentStatus: args.currentStatus,
+              currentOnline: args.currentOnline,
+              currentRSSI: args.currentRSSI,
+            ),
+          ),
+        );
 
       default:
         return _materialRoute(const SplashScreen());
