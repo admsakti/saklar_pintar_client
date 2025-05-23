@@ -36,7 +36,7 @@ class MeshNetworkBloc extends Bloc<MeshNetworkEvent, MeshNetworkState> {
 
       emit(SaveMeshNetworkSuccess());
     } catch (e) {
-      emit(MeshNetworkFailure('Gagal menyimpan Mesh Metwork: $e'));
+      emit(MeshNetworkFailure('Failed to insert Mesh Network: $e'));
     }
   }
 

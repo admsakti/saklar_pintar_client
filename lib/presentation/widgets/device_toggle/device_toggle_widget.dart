@@ -30,8 +30,8 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
   @override
   void initState() {
     super.initState();
-    // sepertinya aman, karena pas refresh data akan diminta ulang dari root!!
-    print("initState DeviceToggleWidget dipanggil");
+    // Sepertinya disimpan aja data dari mqttnya pakai sharedpreferences ???
+
     _currentOnline = false;
     _currentStatus = false;
     _currentRSSI = 'N/A';
@@ -58,8 +58,7 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
 
   @override
   Widget build(BuildContext context) {
-    super.build(
-        context); // penting untuk memanggil super.build saat pakai keepAlive
+    super.build(context); // wajib jika pakai keepAlive
     return BlocListener<MQTTBloc, MQTTState>(
       listener: (context, state) {
         if (state is MQTTConnected) {
@@ -70,6 +69,10 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
           if (matched.isNotEmpty) {
             final Map<String, dynamic> statusMap =
                 json.decode(matched.last.value);
+
+            setState(() {
+              _currentOnline = true;
+            });
 
             if (statusMap.containsKey('rssi')) {
               final signalStrength = (statusMap['rssi']).toString();
@@ -85,10 +88,6 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
                 _currentStatus = currentStatus;
               });
             }
-
-            setState(() {
-              _currentOnline = true;
-            });
           }
         }
       },
@@ -125,10 +124,14 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
                 ),
                 trailing: Switch(
                   value: _currentStatus,
-                  onChanged: (_) => _toggleSwitch(_currentStatus),
+                  onChanged: _currentOnline
+                      ? (_) => _toggleSwitch(_currentStatus)
+                      : null, // Nonaktifkan jika offline
                   activeColor: Colors.green,
-                  inactiveThumbColor: Colors.red,
-                  inactiveTrackColor: Colors.red.shade200,
+                  inactiveThumbColor: _currentOnline ? Colors.red : Colors.grey,
+                  inactiveTrackColor: _currentOnline
+                      ? Colors.red.shade200
+                      : Colors.grey.shade400,
                   thumbIcon: WidgetStateProperty.resolveWith<Icon?>(
                       (Set<WidgetState> states) {
                     if (states.contains(WidgetState.selected)) {
@@ -147,7 +150,7 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
                       if (states.contains(WidgetState.selected)) {
                         return Colors.green;
                       }
-                      return Colors.red;
+                      return _currentOnline ? Colors.red : Colors.grey;
                     },
                   ),
                 ),

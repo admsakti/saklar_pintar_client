@@ -158,7 +158,7 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
     provisioner.start(ProvisioningRequest.fromStrings(
       ssid: _ssidController.text.trim(),
       bssid: _wifiBSSID ?? '00:00:00:00:00:00',
-      password: _passwordController.text,
+      password: _passwordController.text.trim(),
     ));
 
     ProvisioningResponse? response = await showDialog<ProvisioningResponse>(
@@ -206,7 +206,7 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
     context.read<MeshNetworkBloc>().add(
           InsertMeshNetwork(
             macRoot: response.bssidText,
-            meshName: _meshNameController.text,
+            meshName: _meshNameController.text.trim(),
           ),
         );
   }
@@ -529,7 +529,7 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
     context.read<MeshNetworkBloc>().add(
           InsertMeshNetwork(
             macRoot: 'painlessMesh',
-            meshName: _meshNameController.text,
+            meshName: _meshNameController.text.trim(),
           ),
         );
   }

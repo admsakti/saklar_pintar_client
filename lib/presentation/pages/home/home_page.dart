@@ -29,11 +29,7 @@ class _HomePageState extends State<HomePage> {
     return MultiBlocListener(
       listeners: [
         BlocListener<MeshNetworkBloc, MeshNetworkState>(
-          // listenWhen: (previous, current) =>
-          //     current is MeshNetworksLoaded && previous is! MeshNetworksLoaded,
           listener: (context, state) {
-            print("Home Listener GetMeshNetworks Dijalankan");
-
             if (state is MeshNetworksLoaded) {
               print("Home MeshNetworksLoaded: ${state.meshNetworks}");
 
@@ -45,23 +41,19 @@ class _HomePageState extends State<HomePage> {
           },
         ),
         BlocListener<MQTTBloc, MQTTState>(
-          // listenWhen: (previous, current) =>
-          //     current is MQTTConnected && previous is! MQTTConnected,
           listener: (context, state) {
-            print("Home Listener MQTTConnected Dijalankan");
-
             if (state is MQTTConnected &&
                 cachedMeshNetworksForSubscribe != null) {
               for (var mesh in cachedMeshNetworksForSubscribe!) {
-                print(
-                    "Home SubscribedMeshNetwork: ${mesh.id} / ${mesh.macRoot}");
+                print("Home SubscribedMeshNetwork: ${mesh.id}/${mesh.macRoot}");
 
                 context
                     .read<MQTTBloc>()
                     .add(SubscribedMeshNetwork(macRoot: mesh.macRoot));
               }
-              // Kosongkan cache agar tidak kirim ulang
+
               setState(() {
+                // Kosongkan cache agar tidak kirim ulang
                 cachedMeshNetworksForSubscribe = null;
               });
             }
@@ -100,10 +92,11 @@ class _HomePageState extends State<HomePage> {
         body: CustomRefreshIndicator(
           key: _refreshKey,
           onRefresh: () async {
-            print("Home Refresh Dijalankan");
+            context.read<DeviceBloc>().add(GetDevices());
+
             if (cachedMeshNetworksForRequest != null) {
               for (var mesh in cachedMeshNetworksForRequest!) {
-                print("Home RequestDevicesData: ${mesh.id} / ${mesh.macRoot}");
+                print("Home RequestDevicesData: ${mesh.id}/${mesh.macRoot}");
 
                 context.read<MQTTBloc>().add(
                       RequestDevicesData(
@@ -113,10 +106,6 @@ class _HomePageState extends State<HomePage> {
                     );
               }
             }
-
-            context.read<DeviceBloc>().add(GetDevices());
-
-            await Future.delayed(const Duration(seconds: 2));
           },
           builder: (BuildContext context, Widget child,
               IndicatorController controller) {
@@ -156,67 +145,66 @@ class _HomePageState extends State<HomePage> {
               } else if (state is DevicesLoaded) {
                 final devices = state.devices;
 
-                print("Home Devices for MQTT: $devices");
+                print("Home Devices: $devices");
 
-                if (devices.isEmpty) {
-                  return SingleChildScrollView(
-                    // agar bisa pull-down meski tidak ada konten
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.75,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'No Device Available',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
+                if (devices.isNotEmpty) {
+                  return ListView.builder(
+                    itemCount: devices.length,
+                    itemBuilder: (context, index) {
+                      return DeviceToggleWidget(
+                        key: ValueKey(devices[index].id), // ID unik dari device
+                        device: devices[index],
+                      );
+                    },
+                  );
+                }
+
+                return SingleChildScrollView(
+                  // agar bisa pull-down meski tidak ada konten
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.75,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Text(
+                          'No Device Available',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
                           ),
-                          SizedBox.fromSize(size: const Size.fromHeight(20)),
-                          Material(
-                            color: ColorConstants.whiteAppColor,
+                        ),
+                        SizedBox.fromSize(size: const Size.fromHeight(20)),
+                        Material(
+                          color: ColorConstants.whiteAppColor,
+                          borderRadius: BorderRadius.circular(16),
+                          child: InkWell(
+                            onTap: () => _onDeviceProvisioningTapped(context),
                             borderRadius: BorderRadius.circular(16),
-                            child: InkWell(
-                              onTap: () => _onDeviceProvisioningTapped(context),
-                              borderRadius: BorderRadius.circular(16),
-                              child: Container(
-                                color: Colors.transparent,
-                                width: 240,
-                                height: 48,
-                                child: Center(
-                                  child: Text(
-                                    "Add Mesh-Net Device",
-                                    style: TextStyle(
-                                      color: ColorConstants.darkBlueAppColor,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w400,
-                                    ),
+                            child: Container(
+                              color: Colors.transparent,
+                              width: 240,
+                              height: 48,
+                              child: Center(
+                                child: Text(
+                                  "Add Mesh-Net Device",
+                                  style: TextStyle(
+                                    color: ColorConstants.darkBlueAppColor,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w400,
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  );
-                }
-
-                return ListView.builder(
-                  itemCount: devices.length,
-                  itemBuilder: (context, index) {
-                    return DeviceToggleWidget(
-                      key: ValueKey(devices[index].id), // ID unik dari device
-                      device: devices[index],
-                    );
-                  },
+                  ),
                 );
               } else if (state is DeviceFailure) {
                 return SingleChildScrollView(
-                  // agar bisa pull-down meski tidak ada konten
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: SizedBox(
                     height: MediaQuery.of(context).size.height * 0.6,
@@ -234,7 +222,6 @@ class _HomePageState extends State<HomePage> {
               }
 
               return SingleChildScrollView(
-                // agar bisa pull-down meski tidak ada konten
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: SizedBox(
                   height: MediaQuery.of(context).size.height * 0.75,

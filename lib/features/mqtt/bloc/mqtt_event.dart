@@ -14,8 +14,10 @@ class MessageReceived extends MQTTEvent {
   MessageReceived({
     this.deviceStatuses,
     this.meshMessage,
-  }) : assert(deviceStatuses != null || meshMessage != null,
-            'Either deviceStatuses or meshMessage must be provided.');
+  }) : assert(
+          deviceStatuses != null || meshMessage != null,
+          'Either deviceStatuses or meshMessage must be provided',
+        );
 
   @override
   List<Object?> get props => [deviceStatuses, meshMessage];
@@ -66,6 +68,21 @@ class SetDeviceState extends MQTTEvent {
 
   @override
   List<Object?> get props => [macRoot, deviceId, value];
+}
+
+// Custom Event untuk menambahkan device schedule atau timer state saklar
+class SetDeviceSchedule extends MQTTEvent {
+  final String macRoot;
+  final String deviceId;
+  final String scheduleList; // String JSON list schedule
+
+  SetDeviceSchedule(
+      {required this.macRoot,
+      required this.deviceId,
+      required this.scheduleList});
+
+  @override
+  List<Object?> get props => [macRoot, deviceId, scheduleList];
 }
 
 // Custom Event untuk kirim pesan teks ke semua device
