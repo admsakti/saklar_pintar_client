@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -37,6 +35,27 @@ class _HomePageState extends State<HomePage> {
                 cachedMeshNetworksForSubscribe = state.meshNetworks;
                 cachedMeshNetworksForRequest = state.meshNetworks;
               });
+            } else if (state is DeleteAllMeshDeviceRelationsSuccess) {
+              print("Home reset mesh device dijalankan");
+
+              if (cachedMeshNetworksForRequest != null) {
+                for (var mesh in cachedMeshNetworksForRequest!) {
+                  print("Home Unsubcribe Mesh: ${mesh.id}/${mesh.macRoot}");
+
+                  context.read<MQTTBloc>().add(
+                        UnsubscribedMeshNetwork(
+                          macRoot: mesh.macRoot,
+                        ),
+                      );
+                }
+              }
+              context.read<DeviceBloc>().add(GetDevices());
+
+              setState(() {
+                // Kosongkan semua Mesh network di halaman homepage
+                cachedMeshNetworksForSubscribe = null;
+                cachedMeshNetworksForRequest = null;
+              });
             }
           },
         ),
@@ -45,11 +64,21 @@ class _HomePageState extends State<HomePage> {
             if (state is MQTTConnected &&
                 cachedMeshNetworksForSubscribe != null) {
               for (var mesh in cachedMeshNetworksForSubscribe!) {
-                print("Home SubscribedMeshNetwork: ${mesh.id}/${mesh.macRoot}");
+                print("Home Sub&Req Mesh: ${mesh.id}/${mesh.macRoot}");
 
-                context
-                    .read<MQTTBloc>()
-                    .add(SubscribedMeshNetwork(macRoot: mesh.macRoot));
+                // Saat menerima data Mesh Network langsung subcribe dan request data device
+                context.read<MQTTBloc>().add(
+                      SubscribedMeshNetwork(
+                        macRoot: mesh.macRoot,
+                      ),
+                    );
+
+                context.read<MQTTBloc>().add(
+                      RequestDevicesData(
+                        macRoot: mesh.macRoot,
+                        command: 'getNodes',
+                      ),
+                    );
               }
 
               setState(() {
@@ -66,7 +95,43 @@ class _HomePageState extends State<HomePage> {
           title: BlocBuilder<MeshNetworkBloc, MeshNetworkState>(
             builder: (context, state) {
               if (state is MeshNetworksLoaded) {
-                return Text('Mesh-Net App ${state.meshNetworks.length}');
+                return GestureDetector(
+                  onLongPress: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: const Text("Info Mesh"),
+                        backgroundColor: ColorConstants.lightBlueAppColor,
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                                "Mesh yang terhubung: ${state.meshNetworks.length}"),
+                            const SizedBox(height: 8),
+                            const Text("Rincian:"),
+                            for (var mesh in state.meshNetworks)
+                              Text("• ${mesh.name} - ${mesh.macRoot}"),
+                          ],
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: Text(
+                              'Tutup',
+                              style: TextStyle(
+                                color: ColorConstants.blackAppColor,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  child: const Text('Mesh-Net App'),
+                );
               }
               return const Text('Mesh-Net App');
             },
@@ -87,6 +152,7 @@ class _HomePageState extends State<HomePage> {
               onPressed: () => _onDeviceProvisioningTapped(context),
               tooltip: "Add Device",
             ),
+            const SizedBox(width: 5),
           ],
         ),
         body: CustomRefreshIndicator(
@@ -109,28 +175,28 @@ class _HomePageState extends State<HomePage> {
           },
           builder: (BuildContext context, Widget child,
               IndicatorController controller) {
+            // tidak keluar karena tidak memakai delay di onRefresh
             return AnimatedBuilder(
               animation: controller,
               builder: (context, _) {
+                final double pulledExtent = controller.value.clamp(0.0, 1.0);
                 return Stack(
                   alignment: Alignment.topCenter,
                   children: [
-                    if (controller.isLoading)
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: SizedBox(
-                          height: 30,
-                          width: 30,
-                          child: CircularProgressIndicator(
-                            color: Colors.blueAccent,
-                            value: controller.state.isLoading
-                                ? null
-                                : math.min(controller.value, 1.0),
-                          ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: SizedBox(
+                        height: 30,
+                        width: 30,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.blueAccent,
+                          value: pulledExtent,
                         ),
                       ),
+                    ),
                     Padding(
-                      padding: EdgeInsets.only(top: controller.value * 60),
+                      padding: EdgeInsets.only(top: pulledExtent * 60),
                       child: child,
                     ),
                   ],
@@ -149,6 +215,7 @@ class _HomePageState extends State<HomePage> {
 
                 if (devices.isNotEmpty) {
                   return ListView.builder(
+                    padding: const EdgeInsets.only(top: 10),
                     itemCount: devices.length,
                     itemBuilder: (context, index) {
                       return DeviceToggleWidget(

@@ -2,6 +2,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../models/device.dart';
+import '../models/device_schedule.dart';
 import '../models/mesh_network.dart';
 
 class DatabaseHelper {
@@ -34,34 +35,30 @@ class DatabaseHelper {
           macRoot TEXT NOT NULL,
           name TEXT NOT NULL
         )
-      ''');
+        ''');
 
         await db.execute('''
         CREATE TABLE devices (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          deviceId TEXT NOT NULL,
+          nodeId TEXT NOT NULL,
           name TEXT NOT NULL,
           role TEXT NOT NULL,
           meshId INTEGER NOT NULL,
           FOREIGN KEY (meshId) REFERENCES mesh_networks(id) ON DELETE CASCADE
         )
-      ''');
-      },
-      // onUpgrade: (db, oldVersion, newVersion) async {
-      //   if (oldVersion < 2) {
-      //     await db.execute('''
-      //     CREATE TABLE mesh_networks (
-      //       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      //       macRoot TEXT NOT NULL,
-      //       name TEXT NOT NULL
-      //     )
-      //   ''');
+        ''');
 
-      //     await db.execute('''
-      //     ALTER TABLE devices ADD COLUMN meshId INTEGER REFERENCES mesh_networks(id)
-      //   ''');
-      //   }
-      // },
+        await db.execute('''
+        CREATE TABLE device_schedules (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          deviceId INTEGER NOT NULL,
+          time TEXT NOT NULL,
+          state TEXT NOT NULL,
+          enabled INTEGER NOT NULL DEFAULT 1,
+          FOREIGN KEY (deviceId) REFERENCES devices(id) ON DELETE CASCADE
+        )
+        ''');
+      },
     );
   }
 
@@ -142,26 +139,21 @@ class DatabaseHelper {
   }
 
   //// DEVICE
-  // Future<int> insertDevice({required Device device}) async { // Sepertinya tidak dipakai
-  //   final db = await database;
-  //   return await db.insert('devices', device.toMap());
-  // }
-
   Future<int?> insertDeviceWithMacRoot({
     required String macRoot,
-    required String deviceId,
+    required String nodeId,
     required String name,
     required String role,
   }) async {
     final mesh = await getMeshNetworkByMacRoot(macRoot: macRoot);
     if (mesh == null) {
-      print('Mesh with MAC $macRoot not found');
+      // print('Mesh with MAC $macRoot not found');
       return null;
     }
 
     final db = await database;
     return await db.insert('devices', {
-      'deviceId': deviceId,
+      'nodeId': nodeId,
       'name': name,
       'role': role,
       'meshId': mesh.id,
@@ -173,13 +165,12 @@ class DatabaseHelper {
     // final List<Map<String, dynamic>> result = await db.query('devices');
     final List<Map<String, dynamic>> result = await db.rawQuery('''
       SELECT 
-        d.id AS idDevice, d.deviceId AS deviceIdentifier, d.name, d.role,
+        d.id AS idDevice, d.nodeId AS deviceIdentifier, d.name, d.role,
         m.id AS idMesh, m.macRoot AS macIdentifier, m.name AS meshName
       FROM devices d
       INNER JOIN mesh_networks m ON d.meshId = m.id
     ''');
 
-    print("DB GetDevices result: $result");
     return result.map((e) => Device.fromMapWithMeshNetwork(e)).toList();
   }
 
@@ -189,7 +180,7 @@ class DatabaseHelper {
     final result = await db.rawQuery('''
       SELECT 
         d.id AS idDevice, 
-        d.deviceId AS deviceIdentifier, 
+        d.nodeId AS deviceIdentifier, 
         d.name, 
         d.role,
         m.id AS idMesh, 
@@ -208,13 +199,13 @@ class DatabaseHelper {
     }
   }
 
-  Future<Device?> getDeviceByDeviceId({required String deviceId}) async {
+  Future<Device?> getDeviceByNodeId({required String nodeId}) async {
     final db = await database;
 
     final result = await db.rawQuery('''
       SELECT 
         d.id AS idDevice, 
-        d.deviceId AS deviceIdentifier, 
+        d.nodeId AS deviceIdentifier, 
         d.name, 
         d.role,
         m.id AS idMesh, 
@@ -222,9 +213,9 @@ class DatabaseHelper {
         m.name AS meshName
       FROM devices d
       INNER JOIN mesh_networks m ON d.meshId = m.id
-      WHERE d.deviceId = ?
+      WHERE d.nodeId = ?
       LIMIT 1
-    ''', [deviceId]);
+    ''', [nodeId]);
 
     if (result.isNotEmpty) {
       return Device.fromMapWithMeshNetwork(result.first);
@@ -264,9 +255,73 @@ class DatabaseHelper {
     return await db.delete('devices');
   }
 
+  //// SCHEDULE
+  Future<int> insertDeviceSchedulewithDeviceId({
+    required int deviceId,
+    required String time,
+    required String state,
+    required bool enabled,
+  }) async {
+    final db = await database;
+    return await db.insert(
+      'device_schedules',
+      {
+        'deviceId': deviceId,
+        'time': time,
+        'state': state,
+        'enabled': enabled ? 1 : 0,
+      },
+    );
+  }
+
+  Future<List<DeviceSchedule>> getSchedulesByDeviceId({
+    required int deviceId,
+  }) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'device_schedules',
+      where: 'deviceId = ?',
+      whereArgs: [deviceId],
+    );
+
+    return List.generate(maps.length, (i) {
+      return DeviceSchedule.fromMap(maps[i]);
+    });
+  }
+
+  Future<int> updateDeviceScheduleEnabled({
+    required int scheduleId,
+    required bool enabled,
+  }) async {
+    final db = await database;
+    return await db.update(
+      'device_schedules',
+      {'enabled': enabled ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [scheduleId],
+    );
+  }
+
+  Future<int> deleteDeviceSchedule({
+    required int scheduleId,
+  }) async {
+    final db = await database;
+    return await db.delete(
+      'device_schedules',
+      where: 'id = ?',
+      whereArgs: [scheduleId],
+    );
+  }
+
+  Future<int> resetScheduleTable() async {
+    final db = await database;
+    return await db.delete('device_schedules');
+  }
+
   //// ALL
   Future<void> resetAllTables() async {
     final db = await database;
+    await db.delete('device_schedules');
     await db.delete('devices');
     await db.delete('mesh_networks');
   }

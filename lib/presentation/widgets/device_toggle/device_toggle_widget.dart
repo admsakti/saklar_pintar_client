@@ -30,8 +30,6 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
   @override
   void initState() {
     super.initState();
-    // Sepertinya disimpan aja data dari mqttnya pakai sharedpreferences ???
-
     _currentOnline = false;
     _currentStatus = false;
     _currentRSSI = 'N/A';
@@ -43,7 +41,7 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
     context.read<MQTTBloc>().add(
           SetDeviceState(
             macRoot: widget.device.meshNetwork.macRoot,
-            deviceId: widget.device.deviceId,
+            nodeId: widget.device.nodeId,
             value: newCommand,
           ),
         );
@@ -63,7 +61,7 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
       listener: (context, state) {
         if (state is MQTTConnected) {
           final matched = state.deviceStatuses.where(
-            (ds) => ds.nodeId == widget.device.deviceId,
+            (ds) => ds.nodeId == widget.device.nodeId,
           );
 
           if (matched.isNotEmpty) {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/constants/color_constants.dart';
-import '../../../features/database/bloc/device/device_bloc.dart';
+import '../../../features/database/bloc/mesh_network/mesh_network_bloc.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -14,11 +14,11 @@ class SettingsPage extends StatelessWidget {
         backgroundColor: ColorConstants.lightBlueAppColor,
         title: const Text('Settings'),
       ),
-      body: BlocListener<DeviceBloc, DeviceState>(
+      body: BlocListener<MeshNetworkBloc, MeshNetworkState>(
         listener: (context, state) {
-          if (state is DeviceLoading) {
+          if (state is MeshNetworkLoading) {
             const Center(child: CircularProgressIndicator());
-          } else if (state is DeleteAllDevicesAndMeshNetworksSuccess) {
+          } else if (state is DeleteAllMeshDeviceRelationsSuccess) {
             showDialog(
               barrierDismissible: false,
               context: context,
@@ -54,7 +54,7 @@ class SettingsPage extends StatelessWidget {
                 );
               },
             );
-          } else if (state is DeviceFailure) {
+          } else if (state is MeshNetworkFailure) {
             showDialog(
               barrierDismissible: false,
               context: context,
@@ -170,7 +170,7 @@ class SettingsPage extends StatelessWidget {
                                 ),
                               ),
                               onPressed: () =>
-                                  _onDeleteAllDevicesAndMeshNetworks(context),
+                                  _onDeleteAllMeshDeviceRelations(context),
                               child: Text(
                                 'Ya!',
                                 style: TextStyle(
@@ -262,9 +262,9 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  _onDeleteAllDevicesAndMeshNetworks(BuildContext context) async {
-    context.read<DeviceBloc>().add(
-          DeleteAllDevicesAndMeshNetworks(),
+  _onDeleteAllMeshDeviceRelations(BuildContext context) async {
+    context.read<MeshNetworkBloc>().add(
+          DeleteAllMeshDeviceRelations(),
         );
   }
 }

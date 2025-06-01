@@ -10,6 +10,8 @@ class DataMQTT {
   final String clientId;
   final int port;
 
+  final Set<String> _subscribedTopics = {};
+
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
 
   bool _isManuallyDisconnected = false;
@@ -32,6 +34,7 @@ class DataMQTT {
     client.onDisconnected = _onDisconnected;
     client.onSubscribed = _onSubscribed;
     client.onSubscribeFail = _onSubscribeFail;
+    client.onUnsubscribed = _onUnsubscribed;
 
     final connMessage = MqttConnectMessage()
         .withClientIdentifier(clientId)
@@ -47,12 +50,12 @@ class DataMQTT {
     _isConnecting = true;
 
     try {
-      print('🔄 Connecting to $server:$port as $clientId ...');
+      print('🔄 MQTT Connecting to $server:$port as $clientId ...');
       await client.connect();
     } catch (e) {
-      print('❌ Connection exception: $e');
+      print('❌ MQTT Connection exception: $e');
       print(
-          '🔍 Connection return code: ${client.connectionStatus?.returnCode}');
+          '🔍 MQTT Connection return code: ${client.connectionStatus?.returnCode}');
       _disconnectOnError();
       _scheduleReconnect();
     } finally {
@@ -61,19 +64,44 @@ class DataMQTT {
 
     final status = client.connectionStatus?.state;
     if (status != MqttConnectionState.connected) {
-      print('❌ Connection failed - status: $status');
+      print('❌ MQTT Connection failed - status: $status');
       _disconnectOnError();
       _scheduleReconnect();
     } else {
-      print('✅ Connected!');
+      print('✅ MQTT Connected!');
     }
   }
 
   Stream<List<MqttReceivedMessage<MqttMessage>>>? get updates => client.updates;
 
   void subscribe(String topic, [MqttQos qos = MqttQos.atMostOnce]) {
-    print('📥 Subscribing to topic: $topic');
+    if (_subscribedTopics.contains(topic)) {
+      print('⚠️ MQTT Already subscribed to: $topic');
+      return;
+    }
+
+    print('📥 MQTT Subscribing to topic: $topic');
     client.subscribe(topic, qos);
+    _subscribedTopics.add(topic);
+  }
+
+  void unsubscribe(String topic) {
+    if (!_subscribedTopics.contains(topic)) {
+      print('⚠️ MQTT Cannot unsubscribe; not currently subscribed to: $topic');
+      return;
+    }
+
+    print('📤 MQTT Unsubscribing from topic: $topic');
+    client.unsubscribe(topic);
+    _subscribedTopics.remove(topic);
+  }
+
+  void unsubscribeAll() {
+    for (final topic in _subscribedTopics) {
+      print('📤 MQTT Unsubscribed from: $topic');
+      client.unsubscribe(topic);
+    }
+    _subscribedTopics.clear();
   }
 
   void publish(String topic, String message,
@@ -81,19 +109,19 @@ class DataMQTT {
     final builder = MqttClientPayloadBuilder();
     builder.addString(message);
     client.publishMessage(topic, qos, builder.payload!);
-    print('📤 Published to $topic: $message');
+    print('📤 MQTT Published to $topic: $message');
   }
 
   void disconnect() {
     _isManuallyDisconnected = true;
     _connectivitySubscription.cancel(); // berhenti pantau
     client.disconnect();
-    print('🔌 Disconnected manually');
+    print('🔌 MQTT Disconnected manually');
   }
 
   void _scheduleReconnect() {
     const delay = Duration(seconds: 5);
-    print('⏳ Reconnecting in ${delay.inSeconds} seconds...');
+    print('⏳ MQTT Reconnecting in ${delay.inSeconds} seconds...');
     Future.delayed(delay, () {
       if (!_isManuallyDisconnected &&
           client.connectionStatus?.state != MqttConnectionState.connected) {
@@ -121,22 +149,26 @@ class DataMQTT {
   }
 
   void _onConnected() {
-    print('🔗 Connected callback triggered');
+    print('🔗 MQTT Connected callback triggered');
     _isManuallyDisconnected = false;
   }
 
   void _onDisconnected() {
-    print('🔌 Disconnected callback triggered');
+    print('🔌 MQTT Disconnected callback triggered');
     if (!_isManuallyDisconnected) {
       _scheduleReconnect();
     }
   }
 
   void _onSubscribed(String topic) {
-    print('✅ Subscribed to: $topic');
+    print('✅ MQTT Subscribed to: $topic');
   }
 
   void _onSubscribeFail(String topic) {
-    print('❌ Failed to subscribe: $topic');
+    print('❌ MQTT Failed to subscribe: $topic');
+  }
+
+  void _onUnsubscribed(String? topic) {
+    print('❌ MQTT Unsubscribed topic: $topic');
   }
 }

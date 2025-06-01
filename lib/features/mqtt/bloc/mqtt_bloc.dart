@@ -22,7 +22,10 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     on<PublishMessage>(onPublish);
     on<ProcessDeviceMessage>(onProcessDeviceMessage); // TRIGGER SEKALI SAJA
     on<SubscribedMeshNetwork>(onSubscribedMeshNetwork);
+    on<UnsubscribedMeshNetwork>(onUnsubscribedMeshNetwork);
+    on<UnsubscribedAll>(onUnsubscribedAll);
     on<RequestDevicesData>(onRequestDevicesData);
+    on<RequestDeviceData>(onRequestDeviceData);
     on<SendBroadcast>(onSendBroadcast);
     on<SetDeviceState>(onSetDeviceState);
     on<SetDeviceSchedule>(onSetDeviceSchedule);
@@ -99,11 +102,12 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
           segments[1] == 'gateway' &&
           segments[2] == 'nodes') {
         final macRoot = segments[0];
-        final deviceId = segments[3];
-        final infoType = segments[4]; // name, role, status, rssi
+        final nodeId = segments[3];
+        final infoType = segments[4];
+        // role, status, rssi / name tidak usah karena bisa ambil dari device id
 
         print("macRoot: $macRoot");
-        print("deviceId: $deviceId");
+        print("nodeId: $nodeId");
         print("infoType: $infoType");
         print("payload: $payload");
 
@@ -114,25 +118,24 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
           // jika meshNetwork sudah ada
           print("MQTT Mesh network '${meshNetwork.macRoot}' ada");
 
-          final deviceExist =
-              await _database.getDeviceByDeviceId(deviceId: deviceId);
+          final deviceExist = await _database.getDeviceByNodeId(nodeId: nodeId);
 
           if (deviceExist == null) {
             if (infoType == "role") {
               // jika device belum di insert
-              print("MQTT Device '$deviceId' belum ada, Insert ke database");
+              print("MQTT Device '$nodeId' belum ada, Insert ke database");
               await _database.insertDeviceWithMacRoot(
                 macRoot: macRoot,
-                deviceId: deviceId,
-                name: deviceId,
+                nodeId: nodeId,
+                name: nodeId,
                 role: payload,
               );
             } else {
-              print("MQTT Device '$deviceId' belum ada");
+              print("MQTT Device '$nodeId' belum ada");
               return;
             }
           } else {
-            print("MQTT Device '$deviceId' ada, kirim ke DeviceToggleWidget");
+            print("MQTT Device '$nodeId' ada, kirim ke DeviceToggleWidget");
 
             // jika device sudah di insert
             final Map<String, dynamic> deviceData = {infoType: payload};
@@ -142,7 +145,7 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
             add(
               MessageReceived(
                 deviceStatuses: DeviceStatuses(
-                  nodeId: deviceId,
+                  nodeId: nodeId,
                   value: json.encode(deviceData),
                 ),
               ),
@@ -172,8 +175,6 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     });
   }
 
-// Urus logic ini agar tidak hardcode
-
   void onSubscribedMeshNetwork(
     SubscribedMeshNetwork event,
     Emitter<MQTTState> emit,
@@ -187,13 +188,48 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     }
   }
 
+  void onUnsubscribedMeshNetwork(
+    UnsubscribedMeshNetwork event,
+    Emitter<MQTTState> emit,
+  ) {
+    if (_dataMQTT.client.connectionStatus!.state ==
+        MqttConnectionState.connected) {
+      _dataMQTT.unsubscribe('${event.macRoot}/gateway/nodes/#');
+      _dataMQTT.unsubscribe('${event.macRoot}/gateway/msg');
+    } else {
+      print("❌ MQTT not connected yet. Can't unsubscribe.");
+    }
+  }
+
+  void onUnsubscribedAll(
+    UnsubscribedAll event,
+    Emitter<MQTTState> emit,
+  ) {
+    if (_dataMQTT.client.connectionStatus!.state ==
+        MqttConnectionState.connected) {
+      _dataMQTT.unsubscribeAll();
+    } else {
+      print("❌ MQTT not connected yet. Can't unsubscribe.");
+    }
+  }
+
   void onRequestDevicesData(
     RequestDevicesData event,
     Emitter<MQTTState> emit,
   ) {
     _dataMQTT.publish(
       '${event.macRoot}/gateway/controls/request',
-      event.command,
+      event.command, // getNodes/getRSSI
+    );
+  }
+
+  void onRequestDeviceData(
+    RequestDeviceData event,
+    Emitter<MQTTState> emit,
+  ) {
+    _dataMQTT.publish(
+      '${event.macRoot}/gateway/controls/request/getNode',
+      event.nodeId,
     );
   }
 
@@ -202,7 +238,7 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     Emitter<MQTTState> emit,
   ) {
     _dataMQTT.publish(
-      '${event.macRoot}/gateway/controls/${event.deviceId}/set',
+      '${event.macRoot}/gateway/controls/${event.nodeId}/set',
       event.value,
     );
   }
@@ -212,7 +248,7 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     Emitter<MQTTState> emit,
   ) {
     _dataMQTT.publish(
-      '${event.macRoot}/gateway/controls/${event.deviceId}/schedule',
+      '${event.macRoot}/gateway/controls/${event.nodeId}/schedule',
       event.scheduleList,
     );
   }

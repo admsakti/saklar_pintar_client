@@ -7,13 +7,13 @@ abstract class DeviceEvent extends Equatable {
 
 class InsertDeviceWithMacRoot extends DeviceEvent {
   final String macRoot;
-  final String deviceId;
+  final String nodeId;
   final String name;
   final String role;
 
   InsertDeviceWithMacRoot({
     required this.macRoot,
-    required this.deviceId,
+    required this.nodeId,
     required this.name,
     required this.role,
   });
@@ -21,33 +21,11 @@ class InsertDeviceWithMacRoot extends DeviceEvent {
   @override
   List<Object?> get props => [
         macRoot,
-        deviceId,
+        nodeId,
         name,
         role,
       ];
 }
-
-// class InsertDevice extends DeviceEvent {
-//   final String deviceId;
-//   final String name;
-//   final String role;
-//   final int meshId;
-
-//   InsertDevice({
-//     required this.deviceId,
-//     required this.name,
-//     required this.role,
-//     required this.meshId,
-//   });
-
-//   @override
-//   List<Object?> get props => [
-//         deviceId,
-//         name,
-//         role,
-//         meshId,
-//       ];
-// }
 
 class GetDevices extends DeviceEvent {}
 

@@ -2,11 +2,13 @@ import 'dart:convert';
 
 import 'package:bottom_picker/bottom_picker.dart';
 import 'package:bottom_picker/resources/arrays.dart';
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/color_constants.dart';
 import '../../../features/database/bloc/device/device_bloc.dart';
+import '../../../features/database/bloc/device_schedule/device_schedule_bloc.dart';
 import '../../../features/database/bloc/mesh_network/mesh_network_bloc.dart';
 import '../../../features/database/models/device.dart';
 import '../../../features/mqtt/bloc/mqtt_bloc.dart';
@@ -30,6 +32,9 @@ class DeviceDashboardPage extends StatefulWidget {
 }
 
 class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
+  final GlobalKey<CustomRefreshIndicatorState> _refreshKey =
+      GlobalKey<CustomRefreshIndicatorState>();
+
   late bool _currentOnline;
   late bool _currentStatus;
   late String _currentRSSI;
@@ -42,12 +47,7 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
   bool _isEditingMeshName = false;
   late final FocusNode _focusMeshNameTextField;
 
-  List<Map<String, dynamic>> scheduleList = [
-    {"time": "06:00", "state": "OFF", "enabled": true},
-    {"time": "17:00", "state": "ON", "enabled": true},
-    {"time": "22:00", "state": "OFF", "enabled": false},
-    {"time": "04:00", "state": "OFF", "enabled": false},
-  ];
+  List<Map<String, dynamic>> scheduleList = [];
 
   String? selectedState;
   TimeOfDay? selectedTime;
@@ -86,7 +86,7 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
     context.read<MQTTBloc>().add(
           SetDeviceState(
             macRoot: widget.device.meshNetwork.macRoot,
-            deviceId: widget.device.deviceId,
+            nodeId: widget.device.nodeId,
             value: newCommand,
           ),
         );
@@ -105,10 +105,11 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
               name: newDeviceName,
             ),
           );
+      setState(() {
+        _isEditingDeviceName = false;
+        _controllerDeviceName.text = newDeviceName;
+      });
     }
-    setState(() {
-      _isEditingDeviceName = false;
-    });
   }
 
   void _saveMeshName() {
@@ -121,10 +122,11 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
               name: newMeshName,
             ),
           );
+      setState(() {
+        _isEditingMeshName = false;
+        _controllerMeshName.text = newMeshName;
+      });
     }
-    setState(() {
-      _isEditingMeshName = false;
-    });
   }
 
   @override
@@ -135,7 +137,7 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
           listener: (context, state) {
             if (state is MQTTConnected) {
               final matched = state.deviceStatuses.where(
-                (ds) => ds.nodeId == widget.device.deviceId,
+                (ds) => ds.nodeId == widget.device.nodeId,
               );
 
               if (matched.isNotEmpty) {
@@ -187,6 +189,12 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                       actions: [
                         TextButton(
                           onPressed: () {
+                            context.read<MQTTBloc>().add(
+                                  RequestDevicesData(
+                                    macRoot: widget.device.meshNetwork.macRoot,
+                                    command: 'getNodes',
+                                  ),
+                                );
                             Navigator.pop(context);
                           },
                           child: Text(
@@ -264,6 +272,13 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                       actions: [
                         TextButton(
                           onPressed: () {
+                            context.read<DeviceBloc>().add(GetDevices());
+                            context.read<MQTTBloc>().add(
+                                  RequestDevicesData(
+                                    macRoot: widget.device.meshNetwork.macRoot,
+                                    command: 'getNodes',
+                                  ),
+                                );
                             Navigator.pop(context);
                           },
                           child: Text(
@@ -318,6 +333,128 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
             }
           },
         ),
+        BlocListener<DeviceScheduleBloc, DeviceScheduleState>(
+          listener: (context, state) {
+            if (state is DeviceScheduleLoading) {
+              const Center(child: CircularProgressIndicator());
+            } else if (state is DeviceScheduleLoaded) {
+              setState(() {
+                scheduleList = state.schedules
+                    .map(
+                      (s) => s.toDisplayMap(),
+                    )
+                    .toList();
+              });
+            } else if (state is SaveDeviceScheduleSuccess) {
+              showDialog(
+                barrierDismissible: false,
+                context: context,
+                builder: (_) {
+                  return PopScope(
+                    canPop: false,
+                    child: AlertDialog(
+                      backgroundColor: ColorConstants.lightBlueAppColor,
+                      title: const Text('Add Device Schedule'),
+                      content: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Device schedule successfully added!'),
+                          Text("Dont forget to set the schedule to device"),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          child: Text(
+                            'OK',
+                            style: TextStyle(
+                              color: ColorConstants.blackAppColor,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            } else if (state is DeleteDeviceScheduleSuccess) {
+              showDialog(
+                barrierDismissible: false,
+                context: context,
+                builder: (_) {
+                  return PopScope(
+                    canPop: false,
+                    child: AlertDialog(
+                      backgroundColor: ColorConstants.lightBlueAppColor,
+                      title: const Text('Delete Device Schedule'),
+                      content: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Device schedule deleted successfully!'),
+                          Text("Dont forget to set the schedule to device"),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          child: Text(
+                            'OK',
+                            style: TextStyle(
+                              color: ColorConstants.blackAppColor,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            } else if (state is DeviceScheduleFailure) {
+              showDialog(
+                barrierDismissible: false,
+                context: context,
+                builder: (_) {
+                  return PopScope(
+                    canPop: false,
+                    child: AlertDialog(
+                      backgroundColor: ColorConstants.lightBlueAppColor,
+                      title: const Text('Device Schedule Failure'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Gagal: ${state.message}'),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          child: Text(
+                            'OK',
+                            style: TextStyle(
+                              color: ColorConstants.blackAppColor,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            }
+          },
+        ),
       ],
       child: Scaffold(
         appBar: AppBar(
@@ -339,640 +476,753 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
             ),
           ),
           actions: [
-            Switch(
-              // memang sebaiknya data device disimpan agar tidak rancu !!!
-
-              value: _currentStatus,
-              onChanged: _currentOnline
-                  ? (_) => _toggleSwitch(_currentStatus)
-                  : null, // Nonaktifkan jika offline
-              activeColor: Colors.green,
-              inactiveThumbColor: _currentOnline ? Colors.red : Colors.grey,
-              inactiveTrackColor:
-                  _currentOnline ? Colors.red.shade200 : Colors.grey.shade400,
-              thumbIcon: WidgetStateProperty.resolveWith<Icon?>(
-                  (Set<WidgetState> states) {
-                if (states.contains(WidgetState.selected)) {
-                  return const Icon(
-                    Icons.lightbulb_rounded,
-                    color: Colors.white,
-                  );
-                }
-                return const Icon(
-                  Icons.lightbulb_rounded,
-                  color: Colors.black54,
+            // Refresh manual dengan tombol
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: () {
+                _refreshKey.currentState?.refresh(
+                  draggingCurve: Curves.easeOutBack,
                 );
-              }),
-              trackOutlineColor: WidgetStateProperty.resolveWith<Color?>(
-                (Set<WidgetState> states) {
-                  if (states.contains(WidgetState.selected)) {
-                    return Colors.green;
-                  }
-                  return _currentOnline ? Colors.red : Colors.grey;
-                },
-              ),
+              },
+              tooltip: "Refresh Device",
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 5),
           ],
         ),
-        body: Container(
-          padding: const EdgeInsets.only(top: 16, left: 20, right: 20),
-          height: double.infinity,
-          width: MediaQuery.of(context).size.width,
+        body: CustomRefreshIndicator(
+          key: _refreshKey,
+          onRefresh: () async {
+            print("Home Req Device Data: ${widget.device.nodeId}");
+
+            context.read<MQTTBloc>().add(
+                  RequestDeviceData(
+                    macRoot: widget.device.meshNetwork.macRoot,
+                    nodeId: widget.device.nodeId,
+                  ),
+                );
+          },
+          builder: (BuildContext context, Widget child,
+              IndicatorController controller) {
+            return AnimatedBuilder(
+              animation: controller,
+              builder: (context, _) {
+                final double pulledExtent = controller.value.clamp(0.0, 1.0);
+                return Stack(
+                  alignment: Alignment.topCenter,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: SizedBox(
+                        height: 30,
+                        width: 30,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.blueAccent,
+                          value: pulledExtent,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(top: pulledExtent * 60),
+                      child: child,
+                    ),
+                  ],
+                );
+              },
+            );
+          },
           child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const SizedBox(
-                      width: 125,
-                      child: Text(
-                        "Name",
-                        style: TextStyle(fontSize: 16),
-                      ),
-                    ),
-                    const SizedBox(width: 5, child: Text(":")),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _controllerDeviceName,
-                              enabled: true,
-                              readOnly: !_isEditingDeviceName,
-                              focusNode: _focusDeviceNameTextField,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                border: InputBorder.none,
-                              ),
-                              onTapOutside: (event) {
-                                setState(() {
-                                  _isEditingDeviceName = false;
-                                });
-                                _focusDeviceNameTextField.unfocus();
-                              },
-                              onSubmitted: (_) {
-                                showDialog(
-                                  context: context,
-                                  builder: (_) => AlertDialog(
-                                    backgroundColor:
-                                        ColorConstants.lightBlueAppColor,
-                                    title: const Text(
-                                      "Update Device Name",
-                                    ),
-                                    content: const Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          "Yakin ingin mengganti nama device?",
-                                        ),
-                                      ],
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        style: const ButtonStyle(
-                                          backgroundColor:
-                                              WidgetStatePropertyAll<Color>(
-                                            Colors.green,
-                                          ),
-                                        ),
-                                        onPressed: () {
-                                          setState(() {
-                                            _controllerDeviceName.text =
-                                                widget.device.name;
-                                            _isEditingDeviceName = false;
-                                          });
-                                          Navigator.pop(context);
-                                        },
-                                        child: Text(
-                                          'Tidak',
-                                          style: TextStyle(
-                                            color: ColorConstants.blackAppColor,
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                      TextButton(
-                                        style: const ButtonStyle(
-                                          backgroundColor:
-                                              WidgetStatePropertyAll<Color>(
-                                            Colors.red,
-                                          ),
-                                        ),
-                                        onPressed: () {
-                                          _saveDeviceName(); // simpan dan disable field
-                                          Navigator.pop(context);
-                                        },
-                                        child: Text(
-                                          'Ya!',
-                                          style: TextStyle(
-                                            color: ColorConstants.blackAppColor,
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+            child: Container(
+              padding: const EdgeInsets.only(top: 8, left: 20, right: 20),
+              width: MediaQuery.of(context).size.width,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _controllerDeviceName,
+                                  enabled: true,
+                                  readOnly: !_isEditingDeviceName,
+                                  focusNode: _focusDeviceNameTextField,
+                                  style: const TextStyle(
+                                    fontSize: 30,
+                                    color: Colors.black,
                                   ),
-                                );
-                              },
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _isEditingDeviceName = true;
-                              });
-                              Future.delayed(const Duration(milliseconds: 100),
-                                  () {
-                                _focusDeviceNameTextField.requestFocus();
-                                _controllerDeviceName.selection =
-                                    TextSelection.collapsed(
-                                  offset: _controllerDeviceName.text.length,
-                                );
-                              });
-                            },
-                            icon: const Icon(Icons.edit),
-                            iconSize: 20,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            tooltip: "Edit Name",
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 15),
-                  child: Row(
-                    children: [
-                      const SizedBox(
-                        width: 125,
-                        child: Text(
-                          "Device ID",
-                          style: TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 5, child: Text(":")),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width / 2,
-                        child: Text(
-                          widget.device.deviceId,
-                          style: const TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 15),
-                  child: Row(
-                    children: [
-                      const SizedBox(
-                        width: 125,
-                        child: Text(
-                          "Status",
-                          style: TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 5, child: Text(":")),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width / 2,
-                        child: Text(
-                          _currentOnline ? "Online" : "Offline",
-                          style: const TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 15),
-                  child: Row(
-                    children: [
-                      const SizedBox(
-                        width: 125,
-                        child: Text(
-                          "Signal strength",
-                          style: TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 5, child: Text(":")),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width / 2,
-                        child: Text(
-                          _currentRSSI,
-                          style: const TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Row(
-                  children: [
-                    const SizedBox(
-                      width: 125,
-                      child: Text(
-                        "Role",
-                        style: TextStyle(
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 5, child: Text(":")),
-                    SizedBox(
-                      width: MediaQuery.of(context).size.width / 2,
-                      child: Text(
-                        widget.device.role,
-                        style: const TextStyle(
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    const SizedBox(
-                      width: 125,
-                      child: Text(
-                        "Mesh name",
-                        style: TextStyle(
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 5, child: Text(":")),
-                    Expanded(
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _controllerMeshName,
-                              enabled: true,
-                              readOnly: !_isEditingMeshName,
-                              focusNode: _focusMeshNameTextField,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                border: InputBorder.none,
-                              ),
-                              onTapOutside: (event) {
-                                setState(() {
-                                  _isEditingMeshName = false;
-                                });
-                                _focusDeviceNameTextField.unfocus();
-                              },
-                              onSubmitted: (_) {
-                                showDialog(
-                                  context: context,
-                                  builder: (_) => AlertDialog(
-                                    backgroundColor:
-                                        ColorConstants.lightBlueAppColor,
-                                    title: const Text(
-                                      "Update Mesh Name",
-                                    ),
-                                    content: const Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          "Yakin ingin mengganti nama mesh?",
-                                        ),
-                                      ],
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        style: const ButtonStyle(
-                                          backgroundColor:
-                                              WidgetStatePropertyAll<Color>(
-                                            Colors.green,
-                                          ),
-                                        ),
-                                        onPressed: () {
-                                          setState(() {
-                                            _controllerMeshName.text =
-                                                widget.device.meshNetwork.name;
-                                            _isEditingMeshName = false;
-                                          });
-                                          Navigator.pop(context);
-                                        },
-                                        child: Text(
-                                          'Tidak',
-                                          style: TextStyle(
-                                            color: ColorConstants.blackAppColor,
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                      TextButton(
-                                        style: const ButtonStyle(
-                                          backgroundColor:
-                                              WidgetStatePropertyAll<Color>(
-                                            Colors.red,
-                                          ),
-                                        ),
-                                        onPressed: () {
-                                          _saveMeshName(); // simpan dan disable field
-                                          Navigator.pop(context);
-                                        },
-                                        child: Text(
-                                          'Ya!',
-                                          style: TextStyle(
-                                            color: ColorConstants.blackAppColor,
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                  decoration: const InputDecoration(
+                                    isDense: true,
+                                    border: InputBorder.none,
                                   ),
-                                );
-                              },
-                            ),
+                                  onTapOutside: (event) {
+                                    setState(() {
+                                      _controllerDeviceName.text =
+                                          widget.device.name;
+                                      _isEditingDeviceName = false;
+                                    });
+                                    _focusDeviceNameTextField.unfocus();
+                                  },
+                                  onSubmitted: (_) {
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => AlertDialog(
+                                        backgroundColor:
+                                            ColorConstants.lightBlueAppColor,
+                                        title: const Text(
+                                          "Update Device Name",
+                                        ),
+                                        content: const Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              "Yakin ingin mengganti nama device?",
+                                            ),
+                                          ],
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            style: const ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll<Color>(
+                                                Colors.green,
+                                              ),
+                                            ),
+                                            onPressed: () {
+                                              setState(() {
+                                                _controllerDeviceName.text =
+                                                    widget.device.name;
+                                                _isEditingDeviceName = false;
+                                              });
+                                              Navigator.pop(context);
+                                            },
+                                            child: Text(
+                                              'Tidak',
+                                              style: TextStyle(
+                                                color: ColorConstants
+                                                    .blackAppColor,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                          TextButton(
+                                            style: const ButtonStyle(
+                                              backgroundColor:
+                                                  WidgetStatePropertyAll<Color>(
+                                                Colors.red,
+                                              ),
+                                            ),
+                                            onPressed: () {
+                                              _saveDeviceName(); // simpan dan disable field
+                                              Navigator.pop(context);
+                                            },
+                                            child: Text(
+                                              'Ya!',
+                                              style: TextStyle(
+                                                color: ColorConstants
+                                                    .blackAppColor,
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _isEditingDeviceName = true;
+                                  });
+                                  Future.delayed(
+                                      const Duration(milliseconds: 100), () {
+                                    _focusDeviceNameTextField.requestFocus();
+                                    _controllerDeviceName.selection =
+                                        TextSelection.collapsed(
+                                      offset: _controllerDeviceName.text.length,
+                                    );
+                                  });
+                                },
+                                icon: const Icon(Icons.edit),
+                                iconSize: 24,
+                                constraints: const BoxConstraints(),
+                                tooltip: "Edit Device Name",
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _isEditingMeshName = true;
-                              });
-                              Future.delayed(const Duration(milliseconds: 100),
-                                  () {
-                                _focusMeshNameTextField.requestFocus();
-                                _controllerMeshName.selection =
-                                    TextSelection.collapsed(
-                                  offset: _controllerMeshName.text.length,
-                                );
-                              });
+                        ),
+                        const SizedBox(width: 20),
+                        Switch(
+                          value: _currentStatus,
+                          onChanged: _currentOnline
+                              ? (_) => _toggleSwitch(_currentStatus)
+                              : null, // Nonaktifkan jika offline
+                          activeColor: Colors.green,
+                          inactiveThumbColor:
+                              _currentOnline ? Colors.red : Colors.grey,
+                          inactiveTrackColor: _currentOnline
+                              ? Colors.red.shade200
+                              : Colors.grey.shade400,
+                          thumbIcon: WidgetStateProperty.resolveWith<Icon?>(
+                              (Set<WidgetState> states) {
+                            if (states.contains(WidgetState.selected)) {
+                              return const Icon(
+                                Icons.lightbulb_rounded,
+                                color: Colors.white,
+                              );
+                            }
+                            return const Icon(
+                              Icons.lightbulb_rounded,
+                              color: Colors.black54,
+                            );
+                          }),
+                          trackOutlineColor:
+                              WidgetStateProperty.resolveWith<Color?>(
+                            (Set<WidgetState> states) {
+                              if (states.contains(WidgetState.selected)) {
+                                return Colors.green;
+                              }
+                              return _currentOnline ? Colors.red : Colors.grey;
                             },
-                            icon: const Icon(Icons.edit),
-                            iconSize: 20,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            tooltip: "Edit Name",
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Row(
-                    children: [
-                      const SizedBox(
-                        width: 125,
-                        child: Text(
-                          "Mesh Address",
-                          style: TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 5, child: Text(":")),
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width / 2,
-                        child: Text(
-                          widget.device.meshNetwork.macRoot,
-                          style: const TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
-                ),
-
-                //// Buat database juga untuk menyimpan data alarm pada setiap device !!!
-                //// Buat alarm mana yang bisa digunakan (ada tombol switchnya di database) biar nanti tinggal apply
-
-                Container(
-                  margin: const EdgeInsets.symmetric(vertical: 16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    children: [
-                      // Header
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            "Device Schedule",
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: 125,
+                          child: Text(
+                            "Node ID",
                             style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
                             ),
                           ),
-                          IconButton(
-                            onPressed: () => _openDeviceTimePicker(context),
-                            icon: const Icon(Icons.add_circle_outline_rounded),
-                            tooltip: "Add Device Schedule",
-                          ),
-                        ],
-                      ),
-                      const Divider(thickness: 1),
-                      // Table Header
-                      const Row(
-                        children: [
-                          SizedBox(width: 40), // icon delete space
-                          Expanded(child: Center(child: Text("Time"))),
-                          Expanded(child: Center(child: Text("State"))),
-                          Expanded(child: Center(child: Text("Enabled"))),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      // Cek apakah scheduleList kosong
-                      if (scheduleList.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16.0),
-                          child: Center(
-                            child: Column(
-                              children: [
-                                const Text(
-                                  "Timer schedule kosong",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () =>
-                                      _openDeviceTimePicker(context),
-                                  icon: const Icon(
-                                    Icons.add_circle_outline_rounded,
-                                  ),
-                                  tooltip: "Add Device Schedule",
-                                ),
-                              ],
+                        ),
+                        const SizedBox(width: 8, child: Text(":")),
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width / 2,
+                          child: Text(
+                            widget.device.nodeId,
+                            style: const TextStyle(
+                              fontSize: 16,
                             ),
                           ),
-                        )
-                      else
-                        ...scheduleList.asMap().entries.map(
-                          (entry) {
-                            int index = entry.key;
-                            var item = entry.value;
-                            return Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 4.0),
-                              child: Row(
-                                children: [
-                                  // Delete button
-                                  SizedBox(
-                                    width: 40,
-                                    child: IconButton(
-                                      onPressed: () => _removeSchedule(index),
-                                      icon: const Icon(Icons.delete),
-                                      iconSize: 20,
-                                    ),
-                                  ),
-                                  // Time
-                                  Expanded(
-                                    child: Center(
-                                      child: Text(
-                                        item["time"],
-                                        style: const TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: 125,
+                          child: Text(
+                            "Status",
+                            style: TextStyle(
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8, child: Text(":")),
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width / 2,
+                          child: Text(
+                            _currentOnline ? "Online" : "Offline",
+                            style: const TextStyle(
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: 125,
+                          child: Text(
+                            "Signal strength",
+                            style: TextStyle(
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8, child: Text(":")),
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width / 2,
+                          child: Text(
+                            _currentRSSI,
+                            style: const TextStyle(
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      const SizedBox(
+                        width: 125,
+                        child: Text(
+                          "Role",
+                          style: TextStyle(
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8, child: Text(":")),
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width / 2,
+                        child: Text(
+                          widget.device.role,
+                          style: const TextStyle(
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      const SizedBox(
+                        width: 125,
+                        child: Text(
+                          "Mesh name",
+                          style: TextStyle(
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8, child: Text(":")),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _controllerMeshName,
+                                enabled: true,
+                                readOnly: !_isEditingMeshName,
+                                focusNode: _focusMeshNameTextField,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.black,
+                                ),
+                                decoration: const InputDecoration(
+                                  isDense: true,
+                                  border: InputBorder.none,
+                                ),
+                                onTapOutside: (event) {
+                                  setState(() {
+                                    _controllerMeshName.text =
+                                        widget.device.meshNetwork.name;
+                                    _isEditingMeshName = false;
+                                  });
+                                  _focusDeviceNameTextField.unfocus();
+                                },
+                                onSubmitted: (_) {
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => AlertDialog(
+                                      backgroundColor:
+                                          ColorConstants.lightBlueAppColor,
+                                      title: const Text(
+                                        "Update Mesh Name",
                                       ),
-                                    ),
-                                  ),
-                                  // State
-                                  Expanded(
-                                    child: Center(
-                                      child: Text(
-                                        item["state"],
-                                        style: const TextStyle(fontSize: 16),
+                                      content: const Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            "Yakin ingin mengganti nama mesh?",
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                  ),
-                                  // Toggle switch
-                                  Expanded(
-                                    child: Center(
-                                      child: Switch(
-                                        value: item["enabled"],
-                                        onChanged: (value) {
-                                          setState(() {
-                                            scheduleList[index]["enabled"] =
-                                                value;
-                                          });
-                                        },
-                                        activeColor: Colors.green,
-                                        inactiveThumbColor: Colors.red,
-                                        inactiveTrackColor: Colors.red.shade200,
-                                        thumbIcon: WidgetStateProperty
-                                            .resolveWith<Icon?>(
-                                                (Set<WidgetState> states) {
-                                          if (states
-                                              .contains(WidgetState.selected)) {
-                                            return const Icon(
-                                              Icons.check_rounded,
-                                              color: Colors.white,
-                                            );
-                                          }
-                                          return const Icon(
-                                            Icons.close_rounded,
-                                            color: Colors.black54,
-                                          );
-                                        }),
-                                        trackOutlineColor: WidgetStateProperty
-                                            .resolveWith<Color?>(
-                                          (Set<WidgetState> states) {
-                                            if (states.contains(
-                                                WidgetState.selected)) {
-                                              return Colors.green;
-                                            }
-                                            return Colors.red;
+                                      actions: [
+                                        TextButton(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll<Color>(
+                                              Colors.green,
+                                            ),
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _controllerMeshName.text = widget
+                                                  .device.meshNetwork.name;
+                                              _isEditingMeshName = false;
+                                            });
+                                            Navigator.pop(context);
                                           },
+                                          child: Text(
+                                            'Tidak',
+                                            style: TextStyle(
+                                              color:
+                                                  ColorConstants.blackAppColor,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                        TextButton(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll<Color>(
+                                              Colors.red,
+                                            ),
+                                          ),
+                                          onPressed: () {
+                                            _saveMeshName(); // simpan dan disable field
+                                            Navigator.pop(context);
+                                          },
+                                          child: Text(
+                                            'Ya!',
+                                            style: TextStyle(
+                                              color:
+                                                  ColorConstants.blackAppColor,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
+                                  );
+                                },
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _isEditingMeshName = true;
+                                });
+                                Future.delayed(
+                                    const Duration(milliseconds: 100), () {
+                                  _focusMeshNameTextField.requestFocus();
+                                  _controllerMeshName.selection =
+                                      TextSelection.collapsed(
+                                    offset: _controllerMeshName.text.length,
+                                  );
+                                });
+                              },
+                              icon: const Icon(Icons.edit),
+                              iconSize: 20,
+                              constraints: const BoxConstraints(),
+                              tooltip: "Edit Mesh Name",
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: 125,
+                          child: Text(
+                            "Mesh Address",
+                            style: TextStyle(
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8, child: Text(":")),
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width / 2,
+                          child: Text(
+                            widget.device.meshNetwork.macRoot,
+                            style: const TextStyle(
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(
+                    color: ColorConstants.darkBlueAppColor,
+                    thickness: 2,
+                    height: 32,
+                  ),
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Column(
+                      children: [
+                        // Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Device Schedule",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => _openDeviceTimePicker(context),
+                              icon:
+                                  const Icon(Icons.add_circle_outline_rounded),
+                              tooltip: "Add Device Schedule",
+                            ),
+                          ],
+                        ),
+                        const Divider(thickness: 1),
+                        // Table Header
+                        const Row(
+                          children: [
+                            SizedBox(width: 40), // icon delete space
+                            Expanded(child: Center(child: Text("Time"))),
+                            Expanded(child: Center(child: Text("State"))),
+                            Expanded(child: Center(child: Text("Enabled"))),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Cek apakah scheduleList kosong
+                        if (scheduleList.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16.0),
+                            child: Center(
+                              child: Column(
+                                children: [
+                                  const Text(
+                                    "Timer schedule kosong",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () =>
+                                        _openDeviceTimePicker(context),
+                                    icon: const Icon(
+                                      Icons.add_circle_outline_rounded,
+                                    ),
+                                    tooltip: "Add Device Schedule",
                                   ),
                                 ],
                               ),
-                            );
-                          },
-                        ),
-                      const SizedBox(height: 12),
-                      // SET Button
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                        ),
-                        onPressed: scheduleList.isEmpty ||
-                                !scheduleList.any(
-                                  (item) => item['enabled'] == true,
-                                )
-                            ? null // tombol disable
-                            : () {
-                                // seharusnya yang dikirim hanya time dan statenya saja, enable tidak usah !!!
-                                // jadi jika enabled true kirimkan, jika tidak, datanya tidak dipakai atau dikirimkan
+                            ),
+                          )
+                        else
+                          ...scheduleList.asMap().entries.map(
+                            (entry) {
+                              int index = entry.key;
+                              var item = entry.value;
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4.0),
+                                child: Row(
+                                  children: [
+                                    // Delete button
+                                    SizedBox(
+                                      width: 40,
+                                      child: IconButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            scheduleList.removeAt(index);
+                                          });
 
-                                // Filter hanya yang enabled, lalu ambil hanya 'time' dan 'state'
-                                List<Map<String, String>> filteredScheduleList =
-                                    scheduleList
-                                        .where(
-                                            (item) => item['enabled'] == true)
-                                        .map((item) => {
-                                              "time": item["time"].toString(),
-                                              "state": item["state"].toString(),
-                                            })
-                                        .toList();
-
-                                String strfilteredScheduleList =
-                                    jsonEncode(filteredScheduleList);
-
-                                print(strfilteredScheduleList);
-
-                                context.read<MQTTBloc>().add(
-                                      SetDeviceSchedule(
-                                        macRoot:
-                                            widget.device.meshNetwork.macRoot,
-                                        deviceId: widget.device.deviceId,
-                                        scheduleList: strfilteredScheduleList,
+                                          context
+                                              .read<DeviceScheduleBloc>()
+                                              .add(
+                                                DeleteDeviceSchedule(
+                                                  scheduleId:
+                                                      item["scheduleId"],
+                                                ),
+                                              );
+                                        },
+                                        icon: const Icon(Icons.delete),
+                                        iconSize: 20,
                                       ),
-                                    );
-                              },
-                        child: const Text(
-                          "SET SCHEDULE",
-                          style: TextStyle(fontSize: 16, color: Colors.white),
+                                    ),
+                                    // Time
+                                    Expanded(
+                                      child: Center(
+                                        child: Text(
+                                          item["time"],
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                      ),
+                                    ),
+                                    // State
+                                    Expanded(
+                                      child: Center(
+                                        child: Text(
+                                          item["state"],
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                      ),
+                                    ),
+                                    // Toggle switch
+                                    Expanded(
+                                      child: Center(
+                                        child: Switch(
+                                          value: item["enabled"],
+                                          onChanged: (value) {
+                                            setState(() {
+                                              scheduleList[index]["enabled"] =
+                                                  value;
+                                            });
+
+                                            context
+                                                .read<DeviceScheduleBloc>()
+                                                .add(
+                                                  UpdateDeviceScheduleEnabled(
+                                                    scheduleId:
+                                                        item["scheduleId"],
+                                                    enabled: value,
+                                                  ),
+                                                );
+                                          },
+                                          activeColor: Colors.green,
+                                          inactiveThumbColor: Colors.red,
+                                          inactiveTrackColor:
+                                              Colors.red.shade200,
+                                          thumbIcon: WidgetStateProperty
+                                              .resolveWith<Icon?>(
+                                                  (Set<WidgetState> states) {
+                                            if (states.contains(
+                                                WidgetState.selected)) {
+                                              return const Icon(
+                                                Icons.check_rounded,
+                                                color: Colors.white,
+                                              );
+                                            }
+                                            return const Icon(
+                                              Icons.close_rounded,
+                                              color: Colors.black54,
+                                            );
+                                          }),
+                                          trackOutlineColor: WidgetStateProperty
+                                              .resolveWith<Color?>(
+                                            (Set<WidgetState> states) {
+                                              if (states.contains(
+                                                  WidgetState.selected)) {
+                                                return Colors.green;
+                                              }
+                                              return Colors.red;
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        const SizedBox(height: 12),
+                        // SET Button
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                          onPressed: !_currentOnline ||
+                                  scheduleList.isEmpty ||
+                                  !scheduleList
+                                      .any((item) => item['enabled'] == true)
+                              ? null // tombol disable
+                              : () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => AlertDialog(
+                                      backgroundColor:
+                                          ColorConstants.lightBlueAppColor,
+                                      title: const Text(
+                                        "Set Device Schedule",
+                                      ),
+                                      content: const Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                              "Yakin ingin menambahkan Schedule ini ke Device?"),
+                                        ],
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll<Color>(
+                                              Colors.green,
+                                            ),
+                                          ),
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                          },
+                                          child: Text(
+                                            'Tidak',
+                                            style: TextStyle(
+                                              color:
+                                                  ColorConstants.blackAppColor,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                        TextButton(
+                                          style: const ButtonStyle(
+                                            backgroundColor:
+                                                WidgetStatePropertyAll<Color>(
+                                              Colors.red,
+                                            ),
+                                          ),
+                                          onPressed: () =>
+                                              _onSetDeviceSchedule(context),
+                                          child: Text(
+                                            'Ya!',
+                                            style: TextStyle(
+                                              color:
+                                                  ColorConstants.blackAppColor,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                          child: const Text(
+                            "SET SCHEDULE",
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -1043,6 +1293,16 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
             });
           });
 
+          context.read<DeviceScheduleBloc>().add(
+                InsertDeviceSchedulewithDeviceId(
+                  deviceId: widget.device.id!,
+                  time:
+                      '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}',
+                  state: selectedState!,
+                  enabled: true,
+                ),
+              );
+
           // Cetak sebagai JSON
           print(jsonEncode(scheduleList));
         }
@@ -1060,14 +1320,66 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
     ).show(context);
   }
 
-  void _removeSchedule(int index) {
-    setState(() {
-      scheduleList.removeAt(index);
-    });
+  void _onSetDeviceSchedule(BuildContext context) {
+    // Filter hanya yang enabled, lalu ambil hanya 'time' dan 'state'
+    List<Map<String, String>> filteredScheduleList = scheduleList
+        .where((item) => item['enabled'] == true)
+        .map((item) => {
+              "time": item["time"].toString(),
+              "state": item["state"].toString(),
+            })
+        .toList();
+
+    String strfilteredScheduleList = jsonEncode(filteredScheduleList);
+
+    print(strfilteredScheduleList);
+
+    context.read<MQTTBloc>().add(
+          SetDeviceSchedule(
+            macRoot: widget.device.meshNetwork.macRoot,
+            nodeId: widget.device.nodeId,
+            scheduleList: strfilteredScheduleList,
+          ),
+        );
+
+    showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (_) {
+        return PopScope(
+          canPop: false,
+          child: AlertDialog(
+            backgroundColor: ColorConstants.lightBlueAppColor,
+            title: const Text('Send Device Schedule'),
+            content: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Mengirimkan schedule ke device!'),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context);
+                },
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    color: ColorConstants.blackAppColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _onBackButtonTapped(BuildContext context) {
-    // context.read<DeviceBloc>().add(GetDevices());
     Navigator.pop(context);
   }
 }

@@ -4,14 +4,14 @@ import 'mesh_network.dart';
 
 class Device extends Equatable {
   final int? id;
-  final String deviceId;
+  final String nodeId;
   final String name;
   final String role; // root / node
   final MeshNetwork meshNetwork; // Data Model Mesh Network
 
   const Device({
     this.id,
-    required this.deviceId,
+    required this.nodeId,
     required this.name,
     required this.role,
     required this.meshNetwork,
@@ -20,7 +20,7 @@ class Device extends Equatable {
   @override
   List<Object?> get props => [
         id,
-        deviceId,
+        nodeId,
         name,
         role,
         meshNetwork,
@@ -29,7 +29,7 @@ class Device extends Equatable {
   // Map<String, dynamic> toMap() {
   //   return {
   //     'id': id,
-  //     'deviceId': deviceId,
+  //     'nodeId': nodeId,
   //     'name': name,
   //     'role': role,
   //     'meshNetwork': meshNetwork,
@@ -39,7 +39,7 @@ class Device extends Equatable {
   factory Device.fromMapWithMeshNetwork(Map<String, dynamic> map) {
     return Device(
       id: map['idDevice'],
-      deviceId: map['deviceIdentifier'],
+      nodeId: map['deviceIdentifier'],
       name: map['name'],
       role: map['role'],
       meshNetwork: MeshNetwork(
