@@ -30,8 +30,6 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
   @override
   void initState() {
     super.initState();
-    // sepertinya aman, karena pas refresh data akan diminta ulang dari root!!
-    print("initState DeviceToggleWidget dipanggil");
     _currentOnline = false;
     _currentStatus = false;
     _currentRSSI = 'N/A';
@@ -43,7 +41,7 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
     context.read<MQTTBloc>().add(
           SetDeviceState(
             macRoot: widget.device.meshNetwork.macRoot,
-            deviceId: widget.device.deviceId,
+            nodeId: widget.device.nodeId,
             value: newCommand,
           ),
         );
@@ -58,18 +56,21 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
 
   @override
   Widget build(BuildContext context) {
-    super.build(
-        context); // penting untuk memanggil super.build saat pakai keepAlive
+    super.build(context); // wajib jika pakai keepAlive
     return BlocListener<MQTTBloc, MQTTState>(
       listener: (context, state) {
         if (state is MQTTConnected) {
           final matched = state.deviceStatuses.where(
-            (ds) => ds.nodeId == widget.device.deviceId,
+            (ds) => ds.nodeId == widget.device.nodeId,
           );
 
           if (matched.isNotEmpty) {
             final Map<String, dynamic> statusMap =
                 json.decode(matched.last.value);
+
+            setState(() {
+              _currentOnline = true;
+            });
 
             if (statusMap.containsKey('rssi')) {
               final signalStrength = (statusMap['rssi']).toString();
@@ -85,10 +86,6 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
                 _currentStatus = currentStatus;
               });
             }
-
-            setState(() {
-              _currentOnline = true;
-            });
           }
         }
       },
@@ -110,6 +107,8 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
                   onLongPress: () => _onDeviceDashboardLongPressed(context),
                   child: Text(
                     widget.device.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -125,10 +124,14 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
                 ),
                 trailing: Switch(
                   value: _currentStatus,
-                  onChanged: (_) => _toggleSwitch(_currentStatus),
+                  onChanged: _currentOnline
+                      ? (_) => _toggleSwitch(_currentStatus)
+                      : null, // Nonaktifkan jika offline
                   activeColor: Colors.green,
-                  inactiveThumbColor: Colors.red,
-                  inactiveTrackColor: Colors.red.shade200,
+                  inactiveThumbColor: _currentOnline ? Colors.red : Colors.grey,
+                  inactiveTrackColor: _currentOnline
+                      ? Colors.red.shade200
+                      : Colors.grey.shade400,
                   thumbIcon: WidgetStateProperty.resolveWith<Icon?>(
                       (Set<WidgetState> states) {
                     if (states.contains(WidgetState.selected)) {
@@ -147,7 +150,7 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
                       if (states.contains(WidgetState.selected)) {
                         return Colors.green;
                       }
-                      return Colors.red;
+                      return _currentOnline ? Colors.red : Colors.grey;
                     },
                   ),
                 ),
@@ -158,10 +161,73 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Status: ${_currentOnline ? "Online" : "Offline"}'),
-                      Text('Signal strength: $_currentRSSI'),
-                      Text(
-                        'Mesh name: ${widget.device.meshNetwork.name} - (${widget.device.role})',
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 55,
+                            child: Text(
+                              "Status",
+                              style: TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8, child: Text(":")),
+                          SizedBox(
+                            child: Text(
+                              _currentOnline ? "Online" : "Offline",
+                              style: const TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 55,
+                            child: Text(
+                              "RSSI",
+                              style: TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8, child: Text(":")),
+                          SizedBox(
+                            child: Text(
+                              _currentRSSI,
+                              style: const TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 55,
+                            child: Text(
+                              "Role",
+                              style: TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8, child: Text(":")),
+                          SizedBox(
+                            child: Text(
+                              "${widget.device.role} (${widget.device.meshNetwork.name})",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

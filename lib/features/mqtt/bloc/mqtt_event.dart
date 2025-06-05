@@ -7,6 +7,19 @@ abstract class MQTTEvent extends Equatable {
 
 class ConnectMQTT extends MQTTEvent {}
 
+class MQTTConnectingEvent extends MQTTEvent {}
+
+class MQTTConnectedEvent extends MQTTEvent {}
+
+class MQTTDisconnectedEvent extends MQTTEvent {
+  final String reason;
+
+  MQTTDisconnectedEvent(this.reason);
+
+  @override
+  List<Object?> get props => [reason];
+}
+
 class MessageReceived extends MQTTEvent {
   final DeviceStatuses? deviceStatuses;
   final MeshMessage? meshMessage;
@@ -14,8 +27,10 @@ class MessageReceived extends MQTTEvent {
   MessageReceived({
     this.deviceStatuses,
     this.meshMessage,
-  }) : assert(deviceStatuses != null || meshMessage != null,
-            'Either deviceStatuses or meshMessage must be provided.');
+  }) : assert(
+          deviceStatuses != null || meshMessage != null,
+          'Either deviceStatuses or meshMessage must be provided',
+        );
 
   @override
   List<Object?> get props => [deviceStatuses, meshMessage];
@@ -41,10 +56,23 @@ class SubscribedMeshNetwork extends MQTTEvent {
   List<Object?> get props => [macRoot];
 }
 
+// Custom Event untuk Unsubscribe topik root mesh network
+class UnsubscribedMeshNetwork extends MQTTEvent {
+  final String macRoot;
+
+  UnsubscribedMeshNetwork({required this.macRoot});
+
+  @override
+  List<Object?> get props => [macRoot];
+}
+
+// Custom Event untuk Unsubscribe semua topik yang terhubung
+class UnsubscribedAll extends MQTTEvent {}
+
 // Custom Event untuk menangani pesan masuk dari topik root mesh network //// TRIGGER SEKALI SAJA
 class ProcessDeviceMessage extends MQTTEvent {}
 
-// Custom Event untuk permintaan data dari device
+// Custom Event untuk permintaan data dari all device
 class RequestDevicesData extends MQTTEvent {
   final String macRoot;
   final String command; // contoh: 'getNode' atau 'getRSSI'
@@ -55,17 +83,47 @@ class RequestDevicesData extends MQTTEvent {
   List<Object?> get props => [macRoot, command];
 }
 
+// Custom Event untuk permintaan data dari single device
+class RequestDeviceData extends MQTTEvent {
+  final String macRoot;
+  final String nodeId;
+
+  RequestDeviceData({required this.macRoot, required this.nodeId});
+
+  @override
+  List<Object?> get props => [macRoot, nodeId];
+}
+
 // Custom Event untuk mengubah status device (ON/OFF)
 class SetDeviceState extends MQTTEvent {
   final String macRoot;
-  final String deviceId;
+  final String nodeId;
   final String value; // 'ON' atau 'OFF'
 
-  SetDeviceState(
-      {required this.macRoot, required this.deviceId, required this.value});
+  SetDeviceState({
+    required this.macRoot,
+    required this.nodeId,
+    required this.value,
+  });
 
   @override
-  List<Object?> get props => [macRoot, deviceId, value];
+  List<Object?> get props => [macRoot, nodeId, value];
+}
+
+// Custom Event untuk menambahkan device schedule atau timer state saklar
+class SetDeviceSchedule extends MQTTEvent {
+  final String macRoot;
+  final String nodeId;
+  final String scheduleList; // String JSON list schedule
+
+  SetDeviceSchedule({
+    required this.macRoot,
+    required this.nodeId,
+    required this.scheduleList,
+  });
+
+  @override
+  List<Object?> get props => [macRoot, nodeId, scheduleList];
 }
 
 // Custom Event untuk kirim pesan teks ke semua device

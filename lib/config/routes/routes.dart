@@ -3,10 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 // Dependency Injection
 import '../../../injections_container.dart';
-// Arguments
-import '../arguments/device_arguments.dart';
 // BLOC
 import '../../features/database/bloc/device/device_bloc.dart';
+import '../../features/database/bloc/device_schedule/device_schedule_bloc.dart';
 import '../../features/database/bloc/mesh_network/mesh_network_bloc.dart';
 import '../../features/mqtt/bloc/mqtt_bloc.dart';
 // Pages
@@ -14,11 +13,15 @@ import '../../presentation/pages/device_dashboard/device_dashboard.dart';
 import '../../presentation/pages/device_provisioning/device_provisioning_page.dart';
 import '../../presentation/pages/main_bnb/main_bnb_page.dart';
 import '../../presentation/pages/splash/splash_screen.dart';
+import '../../presentation/pages/view_devices/view_devices_page.dart';
+// Arguments
+import '../arguments/device_arguments.dart';
+import '../arguments/devices_arguments.dart';
 
 class AppRoutes {
   static Route onGenerateRoutes(RouteSettings settings) {
     switch (settings.name) {
-      // splash Screen
+      // Splash Screen
       case '/':
         return _materialRoute(const SplashScreen());
 
@@ -28,6 +31,12 @@ class AppRoutes {
         return _materialRoute(
           MultiBlocProvider(
             providers: [
+              BlocProvider.value(
+                value: BlocProvider.of<MQTTBloc>(context)
+                  ..add(
+                    ProcessDeviceMessage(), // TRIGGER SEKALI SAJA,
+                  ),
+              ),
               BlocProvider<MeshNetworkBloc>.value(
                 value: sl<MeshNetworkBloc>()
                   ..add(
@@ -40,11 +49,8 @@ class AppRoutes {
                     GetDevices(),
                   ),
               ),
-              BlocProvider.value(
-                value: BlocProvider.of<MQTTBloc>(context)
-                  ..add(
-                    ProcessDeviceMessage(), // TRIGGER SEKALI SAJA,
-                  ),
+              BlocProvider<DeviceScheduleBloc>.value(
+                value: sl<DeviceScheduleBloc>(),
               ),
             ],
             child: const MainBNBPage(),
@@ -58,10 +64,10 @@ class AppRoutes {
           MultiBlocProvider(
             providers: [
               BlocProvider.value(
-                value: BlocProvider.of<MeshNetworkBloc>(context),
+                value: BlocProvider.of<MQTTBloc>(context),
               ),
               BlocProvider.value(
-                value: BlocProvider.of<MQTTBloc>(context),
+                value: BlocProvider.of<MeshNetworkBloc>(context),
               ),
               BlocProvider.value(
                 value: BlocProvider.of<DeviceBloc>(context),
@@ -71,20 +77,26 @@ class AppRoutes {
           ),
         );
 
-      //Dashboard Details
+      // Dashboard Details
       case '/DeviceDashboard':
         final args = settings.arguments as DeviceArguments;
         return _materialRoute(
           MultiBlocProvider(
             providers: [
               BlocProvider.value(
-                value: BlocProvider.of<MeshNetworkBloc>(args.context),
-              ),
-              BlocProvider.value(
                 value: BlocProvider.of<MQTTBloc>(args.context),
               ),
               BlocProvider.value(
+                value: BlocProvider.of<MeshNetworkBloc>(args.context),
+              ),
+              BlocProvider.value(
                 value: BlocProvider.of<DeviceBloc>(args.context),
+              ),
+              BlocProvider.value(
+                value: BlocProvider.of<DeviceScheduleBloc>(args.context)
+                  ..add(
+                    GetDeviceSchedulesByDeviceId(deviceId: args.device.id!),
+                  ),
               ),
             ],
             child: DeviceDashboardPage(
@@ -95,6 +107,25 @@ class AppRoutes {
             ),
           ),
         );
+
+      // Setting View All Devices
+      case '/ViewDevicesChart':
+        final args = settings.arguments as DevicesArguments;
+        return _materialRoute(
+          MultiBlocProvider(
+            providers: [
+              BlocProvider.value(
+                value: BlocProvider.of<DeviceBloc>(args.context),
+              ),
+            ],
+            child: ViewDevicesPage(
+              devices: args.devices,
+            ),
+          ),
+        );
+
+      // Developer Mode (Change MQTT Broker)
+      // case 'DeveloperMode':
 
       default:
         return _materialRoute(const SplashScreen());

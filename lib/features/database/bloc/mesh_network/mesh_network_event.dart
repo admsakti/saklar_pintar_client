@@ -67,3 +67,5 @@ class DeleteMeshNetworkById extends MeshNetworkEvent {
   @override
   List<Object?> get props => [id];
 }
+
+class DeleteAllMeshDeviceRelations extends MeshNetworkEvent {}

@@ -12,7 +12,6 @@ class DeviceBloc extends Bloc<DeviceEvent, DeviceState> {
 
   DeviceBloc(this._database) : super(DeviceInitial()) {
     on<InsertDeviceWithMacRoot>(onInsertDeviceWithMacRoot);
-    // on<InsertDevice>(onInsertDevice); // Sepertinya tidak dipakai
     on<GetDevices>(onGetDevices);
     on<GetDeviceById>(onGetDeviceById);
     on<UpdateDeviceName>(onUpdateDeviceName);
@@ -37,7 +36,7 @@ class DeviceBloc extends Bloc<DeviceEvent, DeviceState> {
 
       await _database.insertDeviceWithMacRoot(
         macRoot: event.macRoot,
-        deviceId: event.deviceId,
+        nodeId: event.nodeId,
         name: event.name,
         role: event.role,
       );
@@ -47,26 +46,6 @@ class DeviceBloc extends Bloc<DeviceEvent, DeviceState> {
       emit(DeviceFailure('Gagal menyimpan device: $e'));
     }
   }
-
-  // Future<void> onInsertDevice(
-  //   InsertDevice event,
-  //   Emitter<DeviceState> emit,
-  // ) async {
-  //   try {
-  //     await _database.insertDevice(
-  //       device: Device(
-  //         deviceId: event.deviceId,
-  //         name: event.name,
-  //         role: event.role,
-  //         meshId: event.meshId,
-  //       ),
-  //     );
-  //     // add(GetDevices()); // refresh after insert
-  //     emit(SaveDeviceSuccess());
-  //   } catch (e) {
-  //     emit(DeviceFailure('Gagal menyimpan device: $e'));
-  //   }
-  // }
 
   Future<void> onGetDevices(
     GetDevices event,
@@ -111,6 +90,8 @@ class DeviceBloc extends Bloc<DeviceEvent, DeviceState> {
         name: event.name,
       );
       emit(UpdateDeviceSuccess());
+
+      add(GetDevices());
     } catch (e) {
       emit(DeviceFailure('Failed to update Device: $e'));
     }

@@ -40,3 +40,12 @@ class MQTTConnected extends MQTTState {
   @override
   List<Object?> get props => [deviceStatuses, meshMessages];
 }
+
+class MQTTDisconnected extends MQTTState {
+  final String reason;
+
+  MQTTDisconnected(this.reason);
+
+  @override
+  List<Object?> get props => [reason];
+}

@@ -43,3 +43,5 @@ class UpdateMeshNetworkSuccess extends MeshNetworkState {}
 class DeleteMeshNetworksSuccess extends MeshNetworkState {}
 
 class DeleteMeshNetworkSuccess extends MeshNetworkState {}
+
+class DeleteAllMeshDeviceRelationsSuccess extends MeshNetworkState {}

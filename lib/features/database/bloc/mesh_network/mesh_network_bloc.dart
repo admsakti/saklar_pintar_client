@@ -18,6 +18,7 @@ class MeshNetworkBloc extends Bloc<MeshNetworkEvent, MeshNetworkState> {
     on<UpdateMeshNetworkName>(onUpdateMeshNetworkName);
     on<DeleteMeshNetworks>(onDeleteMeshNetworks);
     on<DeleteMeshNetworkById>(onDeleteMeshNetworkById);
+    on<DeleteAllMeshDeviceRelations>(onDeleteAllMeshDeviceRelations);
   }
 
   Future<void> onInsertMeshNetwork(
@@ -36,7 +37,7 @@ class MeshNetworkBloc extends Bloc<MeshNetworkEvent, MeshNetworkState> {
 
       emit(SaveMeshNetworkSuccess());
     } catch (e) {
-      emit(MeshNetworkFailure('Gagal menyimpan Mesh Metwork: $e'));
+      emit(MeshNetworkFailure('Failed to insert Mesh Network: $e'));
     }
   }
 
@@ -104,6 +105,8 @@ class MeshNetworkBloc extends Bloc<MeshNetworkEvent, MeshNetworkState> {
         name: event.name,
       );
       emit(UpdateMeshNetworkSuccess());
+
+      add(GetMeshNetworks());
     } catch (e) {
       emit(MeshNetworkFailure('Failed to update Mesh Network: $e'));
     }
@@ -132,6 +135,22 @@ class MeshNetworkBloc extends Bloc<MeshNetworkEvent, MeshNetworkState> {
       emit(DeleteMeshNetworkSuccess());
     } catch (e) {
       emit(MeshNetworkFailure('Failed to delete Mesh Network: $e'));
+    }
+  }
+
+  Future<void> onDeleteAllMeshDeviceRelations(
+    DeleteAllMeshDeviceRelations event,
+    Emitter<MeshNetworkState> emit,
+  ) async {
+    emit(MeshNetworkLoading());
+    try {
+      await _database.resetAllTables();
+      emit(DeleteAllMeshDeviceRelationsSuccess());
+      
+      add(GetMeshNetworks());
+    } catch (e) {
+      emit(
+          MeshNetworkFailure('Failed to delete All Mesh Device Relations: $e'));
     }
   }
 }

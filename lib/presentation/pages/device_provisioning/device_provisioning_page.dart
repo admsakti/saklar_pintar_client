@@ -158,7 +158,7 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
     provisioner.start(ProvisioningRequest.fromStrings(
       ssid: _ssidController.text.trim(),
       bssid: _wifiBSSID ?? '00:00:00:00:00:00',
-      password: _passwordController.text,
+      password: _passwordController.text.trim(),
     ));
 
     ProvisioningResponse? response = await showDialog<ProvisioningResponse>(
@@ -206,7 +206,7 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
     context.read<MeshNetworkBloc>().add(
           InsertMeshNetwork(
             macRoot: response.bssidText,
-            meshName: _meshNameController.text,
+            meshName: _meshNameController.text.trim(),
           ),
         );
   }
@@ -254,8 +254,15 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
                       TextButton(
                         onPressed: () {
                           print("Provisioning Done! macRoot : $responseBSSID");
+
                           context.read<MQTTBloc>().add(
                                 SubscribedMeshNetwork(macRoot: responseBSSID!),
+                              );
+                          context.read<MQTTBloc>().add(
+                                RequestDevicesData(
+                                  macRoot: responseBSSID!,
+                                  command: 'getNodes',
+                                ),
                               );
                           context.read<MeshNetworkBloc>().add(
                                 GetMeshNetworks(),
@@ -302,10 +309,6 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
                     actions: [
                       TextButton(
                         onPressed: () {
-                          context.read<MeshNetworkBloc>().add(
-                                GetMeshNetworks(),
-                              );
-                          context.read<DeviceBloc>().add(GetDevices());
                           Navigator.pop(context);
                           Navigator.pop(context);
                           _meshNameController.clear();
@@ -524,12 +527,12 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
   _onDummySaveDataMeshNetwork() async {
     print("_onDummySaveDataMeshNetwork dijalankan!");
     setState(() {
-      responseBSSID = 'painlessMesh';
+      responseBSSID = 'a0:b7:65:dd:12:00';
     });
     context.read<MeshNetworkBloc>().add(
           InsertMeshNetwork(
-            macRoot: 'painlessMesh',
-            meshName: _meshNameController.text,
+            macRoot: 'a0:b7:65:dd:12:00',
+            meshName: _meshNameController.text.trim(),
           ),
         );
   }
