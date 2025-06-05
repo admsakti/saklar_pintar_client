@@ -4,6 +4,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
+import '../bloc/mqtt_bloc.dart';
+
 class DataMQTT {
   final MqttServerClient client;
   final String server;
@@ -12,6 +14,7 @@ class DataMQTT {
 
   final Set<String> _subscribedTopics = {};
 
+  late MQTTBloc mqttBloc; // Akan di-set setelah dibuat
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
 
   bool _isManuallyDisconnected = false;
@@ -20,7 +23,7 @@ class DataMQTT {
   DataMQTT({
     required this.server,
     required this.clientId,
-    this.port = 1883,
+    this.port = 1883, // Default MQTT Port
   }) : client = MqttServerClient.withPort(server, clientId, port) {
     _initialize();
     _monitorConnectivity(); // Mulai pantau koneksi
@@ -137,6 +140,7 @@ class DataMQTT {
           result.contains(ConnectivityResult.none) &&
           client.connectionStatus?.state != MqttConnectionState.connected) {
         print('🌐 Internet reconnected - trying to reconnect MQTT...');
+        mqttBloc.add(MQTTConnectingEvent()); // Bloc Connecting event
         connect();
       }
     });
@@ -150,11 +154,14 @@ class DataMQTT {
 
   void _onConnected() {
     print('🔗 MQTT Connected callback triggered');
+    mqttBloc.add(MQTTConnectedEvent()); // Bloc Connected event
     _isManuallyDisconnected = false;
   }
 
   void _onDisconnected() {
     print('🔌 MQTT Disconnected callback triggered');
+    // Bloc Disconnected event
+    mqttBloc.add(MQTTDisconnectedEvent('Connection lost'));
     if (!_isManuallyDisconnected) {
       _scheduleReconnect();
     }

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:get_it/get_it.dart';
 
 import 'core/constants/path_constants.dart';
@@ -12,33 +14,35 @@ import 'features/mqtt/data/data_mqtt.dart';
 final sl = GetIt.instance;
 
 Future<void> initializeDependencies() async {
+  final databaseClient = DatabaseHelper();
+
+  // Buat DataMQTT dulu tanpa MQTTBloc
   final mqttClient = DataMQTT(
-    server: baseMQTTBroker,
-    clientId: baseClientID,
+    server: baseMQTTBroker, // ini nanti bisa diganti dari mode developer
+    clientId: 'MeshNetClient${Random().nextInt(10000)}',
     port: baseMQTTPort,
   );
 
-  final datatabaseClient = DatabaseHelper();
+  // Baru buat MQTTBloc-nya
+  final mqttBloc = MQTTBloc(mqttClient, databaseClient);
+
+  // Inject bloc-nya ke dalam mqttClient
+  mqttClient.mqttBloc = mqttBloc;
+
+  // BLOC MQTT
+  sl.registerSingleton(mqttBloc);
 
   // BLOC mainBNB
   sl.registerSingleton(MainBNBBloc());
 
-  // BLOC MQTT
-  sl.registerSingleton(
-    MQTTBloc(
-      mqttClient,
-      datatabaseClient,
-    ),
-  );
-
   // BLOC Database
   sl.registerSingleton(
-    MeshNetworkBloc(datatabaseClient),
+    MeshNetworkBloc(databaseClient),
   );
   sl.registerSingleton(
-    DeviceBloc(datatabaseClient),
+    DeviceBloc(databaseClient),
   );
   sl.registerSingleton(
-    DeviceScheduleBloc(datatabaseClient),
+    DeviceScheduleBloc(databaseClient),
   );
 }

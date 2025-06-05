@@ -94,46 +94,97 @@ class _HomePageState extends State<HomePage> {
           backgroundColor: ColorConstants.lightBlueAppColor,
           title: BlocBuilder<MeshNetworkBloc, MeshNetworkState>(
             builder: (context, state) {
-              if (state is MeshNetworksLoaded) {
-                return GestureDetector(
-                  onLongPress: () {
-                    showDialog(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                        title: const Text("Info Mesh"),
-                        backgroundColor: ColorConstants.lightBlueAppColor,
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                                "Mesh yang terhubung: ${state.meshNetworks.length}"),
+              final isMeshNetworksLoaded = state is MeshNetworksLoaded;
+              final meshNetworks = state is MeshNetworksLoaded
+                  ? state.meshNetworks
+                  : <MeshNetwork>[];
+              return GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Informations"),
+                          BlocBuilder<MQTTBloc, MQTTState>(
+                            builder: (context, state) {
+                              Color indicatorColor;
+                              // Dart versi 3 memperkenalkan pattern matching
+                              switch (state) {
+                                case MQTTConnecting _:
+                                  indicatorColor = Colors.orange;
+                                  break;
+                                case MQTTConnected _:
+                                  indicatorColor = Colors.green;
+                                  break;
+                                case MQTTDisconnected _:
+                                  indicatorColor = Colors.red;
+                                  break;
+                                default:
+                                  indicatorColor = Colors.grey;
+                              }
+
+                              return Container(
+                                width: 16,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: indicatorColor,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: indicatorColor.withOpacity(0.6),
+                                      spreadRadius: 2,
+                                      blurRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      backgroundColor: ColorConstants.lightBlueAppColor,
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isMeshNetworksLoaded && meshNetworks.isNotEmpty
+                                ? "${meshNetworks.length} Mesh-Net terhubung."
+                                : "Belum ada Mesh-Net yang terhubung.",
+                            style: const TextStyle(
+                              fontSize: 16,
+                            ),
+                          ),
+                          // penggunaan spread operator (...[]) agar hanya menambahkan widget jika kondisi terpenuhi
+                          if (isMeshNetworksLoaded &&
+                              meshNetworks.isNotEmpty) ...[
                             const SizedBox(height: 8),
                             const Text("Rincian:"),
                             for (var mesh in state.meshNetworks)
                               Text("• ${mesh.name} - ${mesh.macRoot}"),
                           ],
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: Text(
-                              'Tutup',
-                              style: TextStyle(
-                                color: ColorConstants.blackAppColor,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
-                    );
-                  },
-                  child: const Text('Mesh-Net App'),
-                );
-              }
-              return const Text('Mesh-Net App');
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: Text(
+                            'Tutup',
+                            style: TextStyle(
+                              color: ColorConstants.blackAppColor,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                child: const Text('Mesh-Net App'),
+              );
             },
           ),
           actions: [

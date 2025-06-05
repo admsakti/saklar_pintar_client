@@ -13,13 +13,15 @@ import '../../presentation/pages/device_dashboard/device_dashboard.dart';
 import '../../presentation/pages/device_provisioning/device_provisioning_page.dart';
 import '../../presentation/pages/main_bnb/main_bnb_page.dart';
 import '../../presentation/pages/splash/splash_screen.dart';
+import '../../presentation/pages/view_devices/view_devices_page.dart';
 // Arguments
 import '../arguments/device_arguments.dart';
+import '../arguments/devices_arguments.dart';
 
 class AppRoutes {
   static Route onGenerateRoutes(RouteSettings settings) {
     switch (settings.name) {
-      // splash Screen
+      // Splash Screen
       case '/':
         return _materialRoute(const SplashScreen());
 
@@ -75,7 +77,7 @@ class AppRoutes {
           ),
         );
 
-      //Dashboard Details
+      // Dashboard Details
       case '/DeviceDashboard':
         final args = settings.arguments as DeviceArguments;
         return _materialRoute(
@@ -105,6 +107,25 @@ class AppRoutes {
             ),
           ),
         );
+
+      // Setting View All Devices
+      case '/ViewDevicesChart':
+        final args = settings.arguments as DevicesArguments;
+        return _materialRoute(
+          MultiBlocProvider(
+            providers: [
+              BlocProvider.value(
+                value: BlocProvider.of<DeviceBloc>(args.context),
+              ),
+            ],
+            child: ViewDevicesPage(
+              devices: args.devices,
+            ),
+          ),
+        );
+
+      // Developer Mode (Change MQTT Broker)
+      // case 'DeveloperMode':
 
       default:
         return _materialRoute(const SplashScreen());

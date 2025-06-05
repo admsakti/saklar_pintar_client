@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:equatable/equatable.dart';
@@ -15,8 +16,18 @@ part 'mqtt_state.dart';
 class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
   final DataMQTT _dataMQTT;
   final DatabaseHelper _database;
+  StreamSubscription? _subscription;
 
   MQTTBloc(this._dataMQTT, this._database) : super(MQTTInitial()) {
+    on<MQTTConnectingEvent>((event, emit) {
+      emit(MQTTConnecting());
+    });
+    on<MQTTConnectedEvent>((event, emit) {
+      emit(MQTTConnected());
+    });
+    on<MQTTDisconnectedEvent>((event, emit) {
+      emit(MQTTDisconnected(event.reason));
+    });
     on<ConnectMQTT>(onConnect);
     on<MessageReceived>(onMessageReceived);
     on<PublishMessage>(onPublish);
@@ -31,6 +42,12 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     on<SetDeviceSchedule>(onSetDeviceSchedule);
   }
 
+  @override
+  Future<void> close() {
+    _subscription?.cancel();
+    return super.close();
+  }
+
   Future<void> onConnect(
     ConnectMQTT event,
     Emitter<MQTTState> emit,
@@ -39,8 +56,6 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
 
     try {
       await _dataMQTT.connect();
-
-      emit(MQTTConnected());
     } catch (e) {
       emit(MQTTError('Connection failed: $e'));
     }
@@ -90,7 +105,8 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     ProcessDeviceMessage event,
     Emitter<MQTTState> emit,
   ) {
-    _dataMQTT.updates?.listen((event) async {
+    _subscription?.cancel(); // pastikan tidak double listen
+    _subscription = _dataMQTT.updates?.listen((event) async {
       final msg = event[0].payload as MqttPublishMessage;
       final payload =
           MqttPublishPayload.bytesToStringAsString(msg.payload.message);

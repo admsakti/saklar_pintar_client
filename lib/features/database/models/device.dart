@@ -26,13 +26,15 @@ class Device extends Equatable {
         meshNetwork,
       ];
 
-  // Map<String, dynamic> toMap() {
+  // Map<String, dynamic> toMapWithMeshNetwork() {
   //   return {
-  //     'id': id,
+  //     'idDevice': id,
   //     'nodeId': nodeId,
-  //     'name': name,
-  //     'role': role,
-  //     'meshNetwork': meshNetwork,
+  //     'deviceName': name,
+  //     'deviceRole': role,
+  //     "idMesh": meshNetwork.id,
+  //     "macRoot": meshNetwork.macRoot,
+  //     "meshName": meshNetwork.name,
   //   };
   // }
 

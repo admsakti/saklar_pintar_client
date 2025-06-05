@@ -554,7 +554,7 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                                   readOnly: !_isEditingDeviceName,
                                   focusNode: _focusDeviceNameTextField,
                                   style: const TextStyle(
-                                    fontSize: 30,
+                                    fontSize: 26,
                                     color: Colors.black,
                                   ),
                                   decoration: const InputDecoration(
@@ -661,7 +661,7 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 20),
+                        const SizedBox(width: 10),
                         Switch(
                           value: _currentStatus,
                           onChanged: _currentOnline
@@ -704,7 +704,7 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                     child: Row(
                       children: [
                         const SizedBox(
-                          width: 125,
+                          width: 120,
                           child: Text(
                             "Node ID",
                             style: TextStyle(
@@ -730,7 +730,7 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                     child: Row(
                       children: [
                         const SizedBox(
-                          width: 125,
+                          width: 120,
                           child: Text(
                             "Status",
                             style: TextStyle(
@@ -756,9 +756,9 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                     child: Row(
                       children: [
                         const SizedBox(
-                          width: 125,
+                          width: 120,
                           child: Text(
-                            "Signal strength",
+                            "RSSI",
                             style: TextStyle(
                               fontSize: 16,
                             ),
@@ -780,7 +780,7 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                   Row(
                     children: [
                       const SizedBox(
-                        width: 125,
+                        width: 120,
                         child: Text(
                           "Role",
                           style: TextStyle(
@@ -803,9 +803,9 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                   Row(
                     children: [
                       const SizedBox(
-                        width: 125,
+                        width: 120,
                         child: Text(
-                          "Mesh name",
+                          "Mesh Name",
                           style: TextStyle(
                             fontSize: 16,
                           ),
@@ -936,7 +936,7 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                     child: Row(
                       children: [
                         const SizedBox(
-                          width: 125,
+                          width: 120,
                           child: Text(
                             "Mesh Address",
                             style: TextStyle(

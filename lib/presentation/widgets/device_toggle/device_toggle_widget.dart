@@ -107,6 +107,8 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
                   onLongPress: () => _onDeviceDashboardLongPressed(context),
                   child: Text(
                     widget.device.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -159,10 +161,73 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Status: ${_currentOnline ? "Online" : "Offline"}'),
-                      Text('Signal strength: $_currentRSSI'),
-                      Text(
-                        'Mesh name: ${widget.device.meshNetwork.name} - (${widget.device.role})',
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 55,
+                            child: Text(
+                              "Status",
+                              style: TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8, child: Text(":")),
+                          SizedBox(
+                            child: Text(
+                              _currentOnline ? "Online" : "Offline",
+                              style: const TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 55,
+                            child: Text(
+                              "RSSI",
+                              style: TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8, child: Text(":")),
+                          SizedBox(
+                            child: Text(
+                              _currentRSSI,
+                              style: const TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const SizedBox(
+                            width: 55,
+                            child: Text(
+                              "Role",
+                              style: TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8, child: Text(":")),
+                          SizedBox(
+                            child: Text(
+                              "${widget.device.role} (${widget.device.meshNetwork.name})",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

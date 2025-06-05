@@ -7,6 +7,19 @@ abstract class MQTTEvent extends Equatable {
 
 class ConnectMQTT extends MQTTEvent {}
 
+class MQTTConnectingEvent extends MQTTEvent {}
+
+class MQTTConnectedEvent extends MQTTEvent {}
+
+class MQTTDisconnectedEvent extends MQTTEvent {
+  final String reason;
+
+  MQTTDisconnectedEvent(this.reason);
+
+  @override
+  List<Object?> get props => [reason];
+}
+
 class MessageReceived extends MQTTEvent {
   final DeviceStatuses? deviceStatuses;
   final MeshMessage? meshMessage;
