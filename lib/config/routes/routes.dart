@@ -9,6 +9,7 @@ import '../../features/database/bloc/device_schedule/device_schedule_bloc.dart';
 import '../../features/database/bloc/mesh_network/mesh_network_bloc.dart';
 import '../../features/mqtt/bloc/mqtt_bloc.dart';
 // Pages
+import '../../presentation/pages/developer_mode/developer_mode_page.dart';
 import '../../presentation/pages/device_dashboard/device_dashboard.dart';
 import '../../presentation/pages/device_provisioning/device_provisioning_page.dart';
 import '../../presentation/pages/main_bnb/main_bnb_page.dart';
@@ -125,7 +126,18 @@ class AppRoutes {
         );
 
       // Developer Mode (Change MQTT Broker)
-      // case 'DeveloperMode':
+      case '/DeveloperMode':
+        final context = settings.arguments as BuildContext;
+        return _materialRoute(
+          MultiBlocProvider(
+            providers: [
+              BlocProvider.value(
+                value: BlocProvider.of<MQTTBloc>(context),
+              ),
+            ],
+            child: const DeveloperSettingsPage(),
+          ),
+        );
 
       default:
         return _materialRoute(const SplashScreen());

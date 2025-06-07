@@ -490,10 +490,11 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
                         : Colors.grey,
                     borderRadius: BorderRadius.circular(16),
                     child: InkWell(
-                      // onTap: _isFormValid ? () => _startProvisioning() : null,
-                      onTap: _isFormValid
-                          ? () => _onDummySaveDataMeshNetwork()
-                          : null,
+                      onTap: _isFormValid ? () => _startProvisioning() : null,
+                      // Dummy untuk proses debugging
+                      // onTap: _isFormValid
+                      //     ? () => _onDummySaveDataMeshNetwork()
+                      //     : null,
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         color: Colors.transparent,
@@ -524,18 +525,19 @@ class _DeviceProvisioningPageState extends State<DeviceProvisioningPage>
     );
   }
 
-  _onDummySaveDataMeshNetwork() async {
-    print("_onDummySaveDataMeshNetwork dijalankan!");
-    setState(() {
-      responseBSSID = 'a0:b7:65:dd:12:00';
-    });
-    context.read<MeshNetworkBloc>().add(
-          InsertMeshNetwork(
-            macRoot: 'a0:b7:65:dd:12:00',
-            meshName: _meshNameController.text.trim(),
-          ),
-        );
-  }
+  // Dummy untuk proses debugging
+  // _onDummySaveDataMeshNetwork() async {
+  //   print("_onDummySaveDataMeshNetwork dijalankan!");
+  //   setState(() {
+  //     responseBSSID = 'a0:b7:65:dd:12:00';
+  //   });
+  //   context.read<MeshNetworkBloc>().add(
+  //         InsertMeshNetwork(
+  //           macRoot: 'a0:b7:65:dd:12:00',
+  //           meshName: _meshNameController.text.trim(),
+  //         ),
+  //       );
+  // }
 
   void _onBackButtonTapped(BuildContext context) {
     Navigator.pop(context);
