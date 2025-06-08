@@ -87,6 +87,10 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
               });
             }
           }
+        } else if (state is! MQTTConnected) {
+          setState(() {
+            _currentOnline = false;
+          });
         }
       },
       child: Card(
@@ -148,7 +152,7 @@ class _DeviceToggleWidgetState extends State<DeviceToggleWidget>
                   trackOutlineColor: WidgetStateProperty.resolveWith<Color?>(
                     (Set<WidgetState> states) {
                       if (states.contains(WidgetState.selected)) {
-                        return Colors.green;
+                        return _currentOnline ? Colors.green : Colors.grey;
                       }
                       return _currentOnline ? Colors.red : Colors.grey;
                     },

@@ -35,7 +35,7 @@ class AppRoutes {
               BlocProvider.value(
                 value: BlocProvider.of<MQTTBloc>(context)
                   ..add(
-                    ProcessDeviceMessage(), // TRIGGER SEKALI SAJA,
+                    ProcessDeviceMessage(),
                   ),
               ),
               BlocProvider<MeshNetworkBloc>.value(

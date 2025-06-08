@@ -19,7 +19,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final GlobalKey<CustomRefreshIndicatorState> _refreshKey =
       GlobalKey<CustomRefreshIndicatorState>();
-  List<MeshNetwork>? cachedMeshNetworksForSubscribe;
   List<MeshNetwork>? cachedMeshNetworksForRequest;
 
   @override
@@ -32,9 +31,30 @@ class _HomePageState extends State<HomePage> {
               print("Home MeshNetworksLoaded: ${state.meshNetworks}");
 
               setState(() {
-                cachedMeshNetworksForSubscribe = state.meshNetworks;
                 cachedMeshNetworksForRequest = state.meshNetworks;
               });
+
+              if (cachedMeshNetworksForRequest != null) {
+                print(
+                    "MQTT Home Sub&Req Mesh dijalankan dari MeshNetworksLoaded");
+                for (var mesh in cachedMeshNetworksForRequest!) {
+                  print("Home Sub&Req Mesh from : ${mesh.id}/${mesh.macRoot}");
+
+                  // Saat menerima data Mesh Network langsung subcribe dan request data device
+                  context.read<MQTTBloc>().add(
+                        SubscribedMeshNetwork(
+                          macRoot: mesh.macRoot,
+                        ),
+                      );
+
+                  context.read<MQTTBloc>().add(
+                        RequestDevicesData(
+                          macRoot: mesh.macRoot,
+                          command: 'getNodes',
+                        ),
+                      );
+                }
+              }
             } else if (state is DeleteAllMeshDeviceRelationsSuccess) {
               print("Home reset mesh device dijalankan");
 
@@ -53,17 +73,23 @@ class _HomePageState extends State<HomePage> {
 
               setState(() {
                 // Kosongkan semua Mesh network di halaman homepage
-                cachedMeshNetworksForSubscribe = null;
                 cachedMeshNetworksForRequest = null;
               });
             }
           },
         ),
         BlocListener<MQTTBloc, MQTTState>(
+          listenWhen: (previous, current) {
+            // print("-- Previous $previous");
+            // print("-- Current $current");
+            return previous is! MQTTConnected && current is MQTTConnected;
+          },
           listener: (context, state) {
-            if (state is MQTTConnected &&
-                cachedMeshNetworksForSubscribe != null) {
-              for (var mesh in cachedMeshNetworksForSubscribe!) {
+            // Memanggil fungsi ini untuk listen ulang mqtt saat client melakukan reconnect
+            context.read<MQTTBloc>().add(ProcessDeviceMessage());
+            if (cachedMeshNetworksForRequest != null) {
+              print("MQTT Home Sub&Req Mesh dijalankan dari MQTTConnected");
+              for (var mesh in cachedMeshNetworksForRequest!) {
                 print("Home Sub&Req Mesh: ${mesh.id}/${mesh.macRoot}");
 
                 // Saat menerima data Mesh Network langsung subcribe dan request data device
@@ -80,11 +106,6 @@ class _HomePageState extends State<HomePage> {
                       ),
                     );
               }
-
-              setState(() {
-                // Kosongkan cache agar tidak kirim ulang
-                cachedMeshNetworksForSubscribe = null;
-              });
             }
           },
         ),
