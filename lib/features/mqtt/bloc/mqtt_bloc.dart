@@ -31,7 +31,7 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     on<ConnectMQTT>(onConnect);
     on<MessageReceived>(onMessageReceived);
     on<PublishMessage>(onPublish);
-    on<ProcessDeviceMessage>(onProcessDeviceMessage); // TRIGGER SEKALI SAJA
+    on<ProcessDeviceMessage>(onProcessDeviceMessage);
     on<SubscribedMeshNetwork>(onSubscribedMeshNetwork);
     on<UnsubscribedMeshNetwork>(onUnsubscribedMeshNetwork);
     on<UnsubscribedAll>(onUnsubscribedAll);
@@ -100,11 +100,11 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     _dataMQTT.publish(event.topic, event.message);
   }
 
-  // TRIGGER SEKALI SAJA
   void onProcessDeviceMessage(
     ProcessDeviceMessage event,
     Emitter<MQTTState> emit,
   ) {
+    print("ProcessDeviceMessage dipanggil");
     _subscription?.cancel(); // pastikan tidak double listen
     _subscription = _dataMQTT.updates?.listen((event) async {
       final msg = event[0].payload as MqttPublishMessage;
@@ -158,6 +158,7 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
 
             print("MQTT Device data: $deviceData");
 
+            // berikan data ke massage received event
             add(
               MessageReceived(
                 deviceStatuses: DeviceStatuses(
@@ -165,7 +166,7 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
                   value: json.encode(deviceData),
                 ),
               ),
-            ); // kembalikan ke massage received event
+            );
           }
         } else {
           print("MQTT Mesh network '$macRoot' tidak ada");
@@ -179,6 +180,7 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
 
         print("MQTT General msg: $payload from macRoot: $macRoot");
 
+        // berikan data ke massage received event
         add(
           MessageReceived(
             meshMessage: MeshMessage(
@@ -233,49 +235,74 @@ class MQTTBloc extends Bloc<MQTTEvent, MQTTState> {
     RequestDevicesData event,
     Emitter<MQTTState> emit,
   ) {
-    _dataMQTT.publish(
-      '${event.macRoot}/gateway/controls/request',
-      event.command, // getNodes/getRSSI
-    );
+    if (_dataMQTT.client.connectionStatus!.state ==
+        MqttConnectionState.connected) {
+      _dataMQTT.publish(
+        '${event.macRoot}/gateway/controls/request',
+        event.command, // getNodes/getRSSI
+      );
+    } else {
+      print("❌ MQTT not connected yet. Can't request devices data.");
+    }
   }
 
   void onRequestDeviceData(
     RequestDeviceData event,
     Emitter<MQTTState> emit,
   ) {
-    _dataMQTT.publish(
-      '${event.macRoot}/gateway/controls/request/getNode',
-      event.nodeId,
-    );
+    if (_dataMQTT.client.connectionStatus!.state ==
+        MqttConnectionState.connected) {
+      _dataMQTT.publish(
+        '${event.macRoot}/gateway/controls/request/getNode',
+        event.nodeId,
+      );
+    } else {
+      print("❌ MQTT not connected yet. Can't request device data.");
+    }
   }
 
   void onSetDeviceState(
     SetDeviceState event,
     Emitter<MQTTState> emit,
   ) {
-    _dataMQTT.publish(
-      '${event.macRoot}/gateway/controls/${event.nodeId}/set',
-      event.value,
-    );
+    if (_dataMQTT.client.connectionStatus!.state ==
+        MqttConnectionState.connected) {
+      _dataMQTT.publish(
+        '${event.macRoot}/gateway/controls/${event.nodeId}/set',
+        event.value,
+      );
+    } else {
+      print("❌ MQTT not connected yet. Can't set device state.");
+    }
   }
 
   void onSetDeviceSchedule(
     SetDeviceSchedule event,
     Emitter<MQTTState> emit,
   ) {
-    _dataMQTT.publish(
-      '${event.macRoot}/gateway/controls/${event.nodeId}/schedule',
-      event.scheduleList,
-    );
+    if (_dataMQTT.client.connectionStatus!.state ==
+        MqttConnectionState.connected) {
+      _dataMQTT.publish(
+        '${event.macRoot}/gateway/controls/${event.nodeId}/schedule',
+        event.scheduleList,
+      );
+    } else {
+      print("❌ MQTT not connected yet. Can't set device schedule.");
+    }
   }
 
   void onSendBroadcast(
     SendBroadcast event,
     Emitter<MQTTState> emit,
   ) {
-    _dataMQTT.publish(
-      '${event.macRoot}/gateway/controls/broadcast',
-      event.message,
-    );
+    if (_dataMQTT.client.connectionStatus!.state ==
+        MqttConnectionState.connected) {
+      _dataMQTT.publish(
+        '${event.macRoot}/gateway/controls/broadcast',
+        event.message,
+      );
+    } else {
+      print("❌ MQTT not connected yet. Can't send beoadcast message.");
+    }
   }
 }

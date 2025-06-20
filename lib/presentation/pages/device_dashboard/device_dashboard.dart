@@ -163,6 +163,10 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                   });
                 }
               }
+            } else if (state is! MQTTConnected) {
+              setState(() {
+                _currentOnline = false;
+              });
             }
           },
         ),
@@ -690,7 +694,9 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                               WidgetStateProperty.resolveWith<Color?>(
                             (Set<WidgetState> states) {
                               if (states.contains(WidgetState.selected)) {
-                                return Colors.green;
+                                return _currentOnline
+                                    ? Colors.green
+                                    : Colors.grey;
                               }
                               return _currentOnline ? Colors.red : Colors.grey;
                             },
@@ -1082,26 +1088,32 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                                       child: Center(
                                         child: Switch(
                                           value: item["enabled"],
-                                          onChanged: (value) {
-                                            setState(() {
-                                              scheduleList[index]["enabled"] =
-                                                  value;
-                                            });
+                                          onChanged: _currentOnline
+                                              ? (value) {
+                                                  setState(() {
+                                                    scheduleList[index]
+                                                        ["enabled"] = value;
+                                                  });
 
-                                            context
-                                                .read<DeviceScheduleBloc>()
-                                                .add(
-                                                  UpdateDeviceScheduleEnabled(
-                                                    scheduleId:
-                                                        item["scheduleId"],
-                                                    enabled: value,
-                                                  ),
-                                                );
-                                          },
+                                                  context
+                                                      .read<
+                                                          DeviceScheduleBloc>()
+                                                      .add(
+                                                        UpdateDeviceScheduleEnabled(
+                                                          scheduleId: item[
+                                                              "scheduleId"],
+                                                          enabled: value,
+                                                        ),
+                                                      );
+                                                }
+                                              : null,
                                           activeColor: Colors.green,
-                                          inactiveThumbColor: Colors.red,
-                                          inactiveTrackColor:
-                                              Colors.red.shade200,
+                                          inactiveThumbColor: _currentOnline
+                                              ? Colors.red
+                                              : Colors.grey,
+                                          inactiveTrackColor: _currentOnline
+                                              ? Colors.red.shade200
+                                              : Colors.grey.shade400,
                                           thumbIcon: WidgetStateProperty
                                               .resolveWith<Icon?>(
                                                   (Set<WidgetState> states) {
@@ -1122,9 +1134,13 @@ class _DeviceDashboardPageState extends State<DeviceDashboardPage> {
                                             (Set<WidgetState> states) {
                                               if (states.contains(
                                                   WidgetState.selected)) {
-                                                return Colors.green;
+                                                return _currentOnline
+                                                    ? Colors.green
+                                                    : Colors.grey;
                                               }
-                                              return Colors.red;
+                                              return _currentOnline
+                                                  ? Colors.red
+                                                  : Colors.grey;
                                             },
                                           ),
                                         ),

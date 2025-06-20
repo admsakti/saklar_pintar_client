@@ -69,7 +69,7 @@ class UnsubscribedMeshNetwork extends MQTTEvent {
 // Custom Event untuk Unsubscribe semua topik yang terhubung
 class UnsubscribedAll extends MQTTEvent {}
 
-// Custom Event untuk menangani pesan masuk dari topik root mesh network //// TRIGGER SEKALI SAJA
+// Custom Event untuk menangani pesan masuk dari topik root mesh network
 class ProcessDeviceMessage extends MQTTEvent {}
 
 // Custom Event untuk permintaan data dari all device

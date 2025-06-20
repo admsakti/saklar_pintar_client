@@ -54,6 +54,7 @@ class DataMQTT {
 
     try {
       print('🔄 MQTT Connecting to $server:$port as $clientId ...');
+      mqttBloc.add(MQTTConnectingEvent()); // Bloc Connecting event
       await client.connect();
     } catch (e) {
       print('❌ MQTT Connection exception: $e');
@@ -78,22 +79,12 @@ class DataMQTT {
   Stream<List<MqttReceivedMessage<MqttMessage>>>? get updates => client.updates;
 
   void subscribe(String topic, [MqttQos qos = MqttQos.atMostOnce]) {
-    if (_subscribedTopics.contains(topic)) {
-      print('⚠️ MQTT Already subscribed to: $topic');
-      return;
-    }
-
     print('📥 MQTT Subscribing to topic: $topic');
     client.subscribe(topic, qos);
     _subscribedTopics.add(topic);
   }
 
   void unsubscribe(String topic) {
-    if (!_subscribedTopics.contains(topic)) {
-      print('⚠️ MQTT Cannot unsubscribe; not currently subscribed to: $topic');
-      return;
-    }
-
     print('📤 MQTT Unsubscribing from topic: $topic');
     client.unsubscribe(topic);
     _subscribedTopics.remove(topic);
@@ -101,7 +92,7 @@ class DataMQTT {
 
   void unsubscribeAll() {
     for (final topic in _subscribedTopics) {
-      print('📤 MQTT Unsubscribed from: $topic');
+      print('📤 MQTT Unsubscribing from topic: $topic');
       client.unsubscribe(topic);
     }
     _subscribedTopics.clear();
@@ -119,12 +110,15 @@ class DataMQTT {
     _isManuallyDisconnected = true;
     _connectivitySubscription.cancel(); // berhenti pantau
     client.disconnect();
+    // Bloc Disconnected event
+    mqttBloc.add(MQTTDisconnectedEvent('Disconnect manually'));
     print('🔌 MQTT Disconnected manually');
   }
 
   void _scheduleReconnect() {
     const delay = Duration(seconds: 5);
     print('⏳ MQTT Reconnecting in ${delay.inSeconds} seconds...');
+    mqttBloc.add(MQTTConnectingEvent()); // Bloc Connecting event
     Future.delayed(delay, () {
       if (!_isManuallyDisconnected &&
           client.connectionStatus?.state != MqttConnectionState.connected) {
@@ -149,6 +143,8 @@ class DataMQTT {
   void _disconnectOnError() {
     if (client.connectionStatus?.state != MqttConnectionState.connected) {
       client.disconnect();
+      // Bloc Disconnected event
+      mqttBloc.add(MQTTDisconnectedEvent('Disconnect on error'));
     }
   }
 
